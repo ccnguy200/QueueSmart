@@ -1,12 +1,12 @@
 /* General */
 body {
-   text-align: center;
-   font-family: Arial;
+   font-family: Georgia;
    color: darkblue;
+   background: rgb(224, 231, 235);
 }
 
 h1 {
-    color: darkorange;
+   color: darkorange;
 }
 
 /* For lists + links */
@@ -30,9 +30,34 @@ nav li {
 nav li a {
    text-decoration: none;  
    padding: 10px 20px;
+   background-color: lightblue;  
 }
 
 nav li a:hover {
    color: white;
    background-color: darkblue;    
+}
+
+
+/* For borders + containers */
+.feature {
+   border-radius: 10px;
+   background: white;
+   padding: 2px 15px 20px 15px;
+   margin: 10px 0;
+   display: flex;
+   flex-direction: column;
+}
+
+.feature-header {
+   border-radius: 10px;
+   background: white;
+   padding: 2px 15px 20px 15px;
+   margin: 10px 0;
+   display: flex;
+   flex-direction: row;
+}
+
+.feature-right {
+   margin-left: 50px;
 }
