@@ -7,8 +7,8 @@
     <body>
         <div class="feature">
             <h1>Login</h1>
-            <!-- HERE: login currently does nothing, action needs to be changed -->
-            <form action="" method="GET">
+            <script src="../script.js" defer></script>
+            <form onsubmit="return login()" method="POST">
                 <p>
                     <label for="email">Username:</label>
                     <input type="email" name="email" id="email" size="10" required>
@@ -19,9 +19,10 @@
                 </p>
                 
                 <p>
-                    <button>Submit</button>
+                    <button type="submit">Submit</button>
                 </p>
             </form>
+        </div>
         
         <a href="../index.html">Back to Home</a>
     </body>
