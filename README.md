@@ -1,11 +1,7 @@
 # QueueSmart
 ## Software Design Project - Team 28
 
-## Technology Used:
-* **Language:** Python
-* **Frontend:** HTML
-* **Backend:** Pending
-* **Database:** Pending
+## Technology Used: HTML/CSS/JavaScript
 
 * **Team Members:**
   * Caroline Jensen
