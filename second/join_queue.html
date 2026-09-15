@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+    <!-- Set title -->
+    <head>
+        <title>Join Queue</title>
+    </head>
+    <body>
+        <header>
+            <h2>QueueSmart</h2>
+            <!-- Navigation to other files -->
+            <nav>
+                <ul>
+                    <!-- Link to user dashboard screen -->
+                    <li><a href="user_dashboard.html">User Dashboard</a></li>
+
+                    <!-- Link to join queue screen -->
+                    <li><a href="join_queue.html">Join Queue</a></li>
+                    
+                    <!-- Link to queue status screen -->
+                    <li><a href="queue.html">Queue Status</a></li>
+
+                    <!-- Link to login screen when user logs out -->
+                    <li><a href="login.html">Logout</a></li>
+                </ul>
+            </nav>
+        </header>
+
+        <!-- Join Queue Screen -->
+        <!-- Mock data used -->
+        <h1>Join a Queue</h1>
+
+        <!-- Features: select service, view estimated wait time, and join or leave a queue -->
+        <div class="card">
+            <!-- Link to queue.html when after joining a queue -->
+            <form action="queue.html" method="GET">
+
+                <!-- Feature 1: Select a service -->
+                <div class="form-group">
+                    <label for="service">Select Service: <span style="color:red;">*</span></label>
+                    <!-- When service selected, updateWaitTime function called -->
+                    <select id="service" name="service" required onchange="updateWaitTime()">
+                        <!-- pending -->
+                    </select>
+                </div>
+
+                <!-- Feature 2: View estimated wait time -->
+                <div class="info-box">
+                    <p style="margin: 0;"><stong>Estimated Wait Time:</stong> <span id="est-wait">Select a service above</span></p>
+                </div>
+
+                <!-- Feature 3: Join or leave a queue -->
+                <div class="form-group">
+                    <!-- Option 1: Join queue -->
+                    <button type="submit" class="btn-submit">cConfirm and Join Queue</button>
+
+                    <!-- Option 2: Leave queue -->
+                    <a href="user_dashboard.html" class="btn-danger">Leave Queue</a>
+                </div>
+
+            </form>
+        </div>
+
+    </body>
+</html>
