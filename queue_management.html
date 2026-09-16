@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <!-- Scaling for browsers on both mobile and desktop -->
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+        <!-- Set title for browser tab -->
+        <title>Queue Management</title>
+
+        <!-- Link google font 'Oswald' -->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+        <!-- Design & Customization -->
+        <style>
+            /* Body design */
+            body {
+                font-family: 'Oswald', sans-serif;
+                margin: 20px;
+                background-color: #f4f4f4;
+                color: #222;
+            }
+
+            /* Navigation header section */
+            header {
+                background-color: #1f3a5f;
+                color: #fff;
+                padding: 12px 20px;
+                border-radius: 6px;
+                margin-bottom: 20px;
+            }
+            header h2 {
+                margin: 0 0 8px 0;
+            }
+            nav ul {
+                list-style: none;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 18px;
+                margin: 0;
+                padding: 0;
+            }
+            nav a {
+                color: #cfe1f5;
+                text-decoration: none;
+                font-weight: 500;
+            }
+            nav a:hover {
+                color: #fff;
+                text-decoration: underline;
+            }
+
+            /* Feature card section */
+            .card {
+                background-color: #fff;
+                border-radius: 6px;
+                padding: 16px 20px;
+                margin-bottom: 20px;
+                box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+            }
+
+            /* Dropdowns and input sections */
+            label {
+                display: block;
+                font-weight: 500;
+                margin-bottom: 4px;
+            }
+            select {
+                font-family: inherit;
+                font-size: 1em;
+                padding: 7px;
+                width: 100%;
+                max-width: 420px;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                box-sizing: border-box;
+            }
+
+            /* Queue summary section */
+            .summary {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 15px;
+                margin-top: 15px;
+            }
+            .summary .stat {
+                background-color: #eef2f7;
+                border-radius: 6px;
+                padding: 10px 16px;
+                min-width: 150px;
+            }
+            .summary .stat .number {
+                font-size: 1.6em;
+                font-weight: 700;
+                margin: 2px 0 0 0;
+            }
+
+            /* Table section */
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 10px;
+            }
+            th, td {
+                text-align: left;
+                padding: 10px;
+                border-bottom: 1px solid #ddd;
+            }
+            th {
+                background-color: #eef2f7;
+            }
+            tr:hover td {
+                background-color: #fafbfc;
+            }
+            .next-up td {
+                background-color: #e8f4ea;
+                font-weight: 600;
+            }
+
+            /* Status badges */
+            .badge {
+                display: inline-block;
+                padding: 3px 10px;
+                border-radius: 12px;
+                font-size: 0.85em;
+                font-weight: 600;
+            }
+            .badge-waiting {
+                background-color: #e2e6eb;
+                color: #333;
+            }
+            .badge-ready {
+                background-color: #fdf0d0;
+                color: #8a6100;
+            }
+
+            /* Button sections */
+            .btn, .btn-secondary, .btn-danger {
+                display: inline-block;
+                border: none;
+                border-radius: 4px;
+                padding: 6px 12px;
+                font-family: inherit;
+                font-size: 0.9em;
+                cursor: pointer;
+                text-decoration: none;
+            }
+            .btn {
+                background-color: #1f3a5f;
+                color: #fff;
+            }
+            .btn:hover {
+                background-color: #2c5185;
+            }
+            .btn-secondary {
+                background-color: #e2e6eb;
+                color: #333;
+            }
+            .btn-secondary:hover {
+                background-color: #cfd5dd;
+            }
+            .btn-danger {
+                background-color: #c0392b;
+                color: #fff;
+            }
+            .btn-danger:hover {
+                background-color: #a5311f;
+            }
+            .actions button {
+                margin-right: 5px;
+                margin-bottom: 4px;
+            }
+            .toolbar {
+                margin-top: 12px;
+            }
+            .toolbar button {
+                margin-right: 8px;
+                margin-bottom: 6px;
+            }
+            .empty {
+                color: #666;
+                font-style: italic;
+                padding: 12px 0;
+            }
+        </style>
+    </head>
+    <!-- Body content -->
+    <body>
+        <header>
+            <h2>QueueSmart &mdash; Admin</h2>
+            <!-- Navigation to other admin files -->
+            <nav>
+                <ul>
+                    <!-- Link to admin dashboard screen -->
+                    <li><a href="admin_dashboard.html">Admin Dashboard</a></li>
+
+                    <!-- Link to service management screen -->
+                    <li><a href="service_management.html">Service Management</a></li>
+
+                    <!-- Link to queue management screen -->
+                    <li><a href="queue_management.html">Queue Management</a></li>
+
+                    <!-- Link to login screen when admin logs out -->
+                    <li><a href="login.html">Logout</a></li>
+                </ul>
+            </nav>
+        </header>
+
+        <!-- Queue Management Screen -->
+        <!-- Note: Mock data used, actions are UI simulations only -->
+        <h1>Queue Management</h1>
+
+        <!-- Feature 1: View the queue for a selected service -->
+        <div class="card">
+            <h3>Select a Service</h3>
+            <div class="form-group">
+                <label for="service-select">Service:</label>
+                <!-- When a service is selected, loadQueue() shows its queue -->
+                <select id="service-select" onchange="loadQueue()">
+                    <option value="Advising">Academic Advising</option>
+                    <option value="Financial Aid">Financial Aid Office</option>
+                    <option value="Tutoring">Tutoring Services</option>
+                </select>
+            </div>
+
+            <!-- Queue summary -->
+            <div class="summary">
+                <div class="stat">
+                    <span>People Waiting</span>
+                    <p class="number" id="stat-length">0</p>
+                </div>
+                <div class="stat">
+                    <span>Estimated Wait (last person)</span>
+                    <p class="number" id="stat-wait">0 min</p>
+                </div>
+                <div class="stat">
+                    <span>Served Today</span>
+                    <p class="number" id="stat-served">0</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Feature 2: View and manage the queue -->
+        <div class="card">
+            <h3 id="queue-title">Queue</h3>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Position</th>
+                        <th>Name</th>
+                        <th>Status</th>
+                        <th>Estimated Wait</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <!-- Queue rows are generated by renderQueue() -->
+                <tbody id="queue-body"></tbody>
+            </table>
+
+            <!-- Shown when the selected queue is empty -->
+            <p class="empty" id="empty-message" style="display:none;">No one is currently waiting in this queue.</p>
+
+            <!-- Feature 3: Serve next user (UI simulation) -->
+            <div class="toolbar">
+                <button class="btn" onclick="serveNext()">Serve Next User</button>
+                <button class="btn-secondary" onclick="resetDemo()">Reset Demo Data</button>
+            </div>
+        </div>
+
+        <!-- loadQueue(): renders the queue for the selected service -->
+        <!-- reorder/remove/serve: UI-only simulations -->
+        <!-- Note: mock data used, no backend -->
+        <script>
+            // Average minutes each person takes to be served (per service)
+            const serviceDurations = {
+                "Advising": 10,
+                "Financial Aid": 8,
+                "Tutoring": 5
+            };
+
+            // Mock queues keyed by service
+            const queues = {
+                "Advising": [
+                    { name: "Maria Lopez" },
+                    { name: "David Kim" },
+                    { name: "Aisha Rahman" },
+                    { name: "Tom Becker" }
+                ],
+                "Financial Aid": [
+                    { name: "Grace Chen" },
+                    { name: "Noah Patel" }
+                ],
+                "Tutoring": []
+            };
+
+            // Number of people served today (mock counter)
+            let servedToday = { "Advising": 0, "Financial Aid": 0, "Tutoring": 0 };
+
+            // Load and render the selected service's queue
+            function loadQueue() {
+                const service = document.getElementById("service-select").value;
+                document.getElementById("queue-title").innerText = service + " Queue";
+                renderQueue(service);
+            }
+
+            // Rebuild the queue table for a service
+            function renderQueue(service) {
+                const queue = queues[service];
+                const body = document.getElementById("queue-body");
+                const emptyMessage = document.getElementById("empty-message");
+                const duration = serviceDurations[service];
+
+                body.innerHTML = "";
+
+                // Toggle the empty message
+                if (queue.length === 0) {
+                    emptyMessage.style.display = "block";
+                } else {
+                    emptyMessage.style.display = "none";
+                }
+
+                queue.forEach(function (person, index) {
+                    const position = index + 1;
+                    const wait = index * duration;
+                    const row = document.createElement("tr");
+
+                    // Highlight the person who is next to be served
+                    if (index === 0) {
+                        row.className = "next-up";
+                    }
+
+                    // The person at the front is "almost ready", everyone else is "waiting"
+                    const statusBadge = index === 0
+                        ? '<span class="badge badge-ready">Almost Ready</span>'
+                        : '<span class="badge badge-waiting">Waiting</span>';
+
+                    row.innerHTML =
+                        "<td>" + position + "</td>" +
+                        "<td>" + person.name + "</td>" +
+                        "<td>" + statusBadge + "</td>" +
+                        "<td>" + wait + " min</td>" +
+                        '<td class="actions">' +
+                            '<button class="btn-secondary" onclick="moveUp(' + index + ')"' + (index === 0 ? " disabled" : "") + ">&uarr;</button>" +
+                            '<button class="btn-secondary" onclick="moveDown(' + index + ')"' + (index === queue.length - 1 ? " disabled" : "") + ">&darr;</button>" +
+                            '<button class="btn-danger" onclick="removeUser(' + index + ')">Remove</button>' +
+                        "</td>";
+
+                    body.appendChild(row);
+                });
+
+                updateSummary(service);
+            }
+
+            // Update the summary stats for a service
+            function updateSummary(service) {
+                const queue = queues[service];
+                const duration = serviceDurations[service];
+                const lastWait = queue.length > 1 ? (queue.length - 1) * duration : 0;
+
+                document.getElementById("stat-length").innerText = queue.length;
+                document.getElementById("stat-wait").innerText = lastWait + " min";
+                document.getElementById("stat-served").innerText = servedToday[service];
+            }
+
+            // Feature: reorder a user upward
+            function moveUp(index) {
+                const service = document.getElementById("service-select").value;
+                const queue = queues[service];
+
+                if (index > 0) {
+                    const temp = queue[index];
+                    queue[index] = queue[index - 1];
+                    queue[index - 1] = temp;
+                    renderQueue(service);
+                }
+            }
+
+            // Feature: reorder a user downward
+            function moveDown(index) {
+                const service = document.getElementById("service-select").value;
+                const queue = queues[service];
+
+                if (index < queue.length - 1) {
+                    const temp = queue[index];
+                    queue[index] = queue[index + 1];
+                    queue[index + 1] = temp;
+                    renderQueue(service);
+                }
+            }
+
+            // Feature: remove a user from the queue
+            function removeUser(index) {
+                const service = document.getElementById("service-select").value;
+                const queue = queues[service];
+
+                if (confirm("Remove " + queue[index].name + " from the queue?")) {
+                    queue.splice(index, 1);
+                    renderQueue(service);
+                }
+            }
+
+            // Feature: serve the next user (UI simulation)
+            function serveNext() {
+                const service = document.getElementById("service-select").value;
+                const queue = queues[service];
+
+                if (queue.length === 0) {
+                    alert("This queue is empty.");
+                    return;
+                }
+
+                const served = queue.shift();
+                servedToday[service] += 1;
+                alert(served.name + " has been served.");
+
+                renderQueue(service);
+            }
+
+            // Reset the mock data back to its starting state (useful for demos)
+            function resetDemo() {
+                location.reload();
+            }
+
+            // Initial render
+            loadQueue();
+        </script>
+    </body>
+</html>
