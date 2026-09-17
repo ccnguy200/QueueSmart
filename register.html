@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Register</title> 
+        <link rel="stylesheet" href="styles.css">      
+    </head>
+    <body>
+        <div class="feature">
+            <h1>Register</h1>
+            <script src="script.js" defer></script>
+            <form onsubmit="return register()" method="POST">
+                <p>
+                    <label for="email">Username:</label>
+                    <input type="email" name="email" id="email" size="10" required>
+                </p>
+                <p>
+                    <label for="secret">Password:</label>
+                    <input type="password" id="secret" name="secret" size="10" minlength="8" maxlength="15" required>
+                </p>
+                
+                <p>
+                    <button type="submit">Submit</button>
+                </p>
+            </form>
+        </div>
+        
+        <a href="index.html">Back to Home</a>
+    </body>
+</html>
