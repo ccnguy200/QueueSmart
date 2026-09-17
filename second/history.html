@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <!-- Scaling for browsers on both mobile and desktop -->
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+        <!-- Set title for browser tab -->
+        <title>History</title>
+
+        <!-- Link google font 'Oswald' -->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+        <!-- Design & Customization -->
+        <style>
+            /* Body design */
+            body {
+                font-family: 'Oswald', sans-serif;
+                margin: 20px;
+                background-color: #f4f4f4;
+                color: #222;
+            }
+
+            /* Navigation header section */
+            header {
+                background-color: #1f3a5f;
+                color: #fff;
+                padding: 12px 20px;
+                border-radius: 6px;
+                margin-bottom: 20px;
+            }
+            header h2 {
+                margin: 0 0 8px 0;
+            }
+            nav ul {
+                list-style: none;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 18px;
+                margin: 0;
+                padding: 0;
+            }
+            nav a {
+                color: #cfe1f5;
+                text-decoration: none;
+                font-weight: 500;
+            }
+            nav a:hover {
+                color: #fff;
+                text-decoration: underline;
+            }
+
+            /* Feature card section */
+            .card {
+                background-color: #fff;
+                border-radius: 6px;
+                padding: 16px 20px;
+                margin-bottom: 20px;
+                box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+            }
+
+            /* Filter section */
+            label {
+                display: block;
+                font-weight: 500;
+                margin-bottom: 4px;
+            }
+            select {
+                font-family: inherit;
+                font-size: 1em;
+                padding: 7px;
+                width: 100%;
+                max-width: 300px;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                box-sizing: border-box;
+            }
+
+            /* Table section */
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 10px;
+            }
+            th, td {
+                text-align: left;
+                padding: 10px;
+                border-bottom: 1px solid #ddd;
+            }
+            th {
+                background-color: #eef2f7;
+            }
+            tr:hover td {
+                background-color: #fafbfc;
+            }
+            .empty {
+                color: #666;
+                font-style: italic;
+                padding: 12px 0;
+            }
+
+            /* Outcome badges */
+            .badge {
+                display: inline-block;
+                padding: 3px 10px;
+                border-radius: 12px;
+                font-size: 0.85em;
+                font-weight: 600;
+            }
+            .badge-served {
+                background-color: #d7f0dd;
+                color: #1b6b35;
+            }
+            .badge-left {
+                background-color: #e2e6eb;
+                color: #333;
+            }
+            .badge-missed {
+                background-color: #f6d7d7;
+                color: #97231f;
+            }
+        </style>
+    </head>
+    <!-- Body content -->
+    <body>
+        <header>
+            <h2>QueueSmart</h2>
+            <!-- Navigation to other user files -->
+            <nav>
+                <ul>
+                    <!-- Link to user dashboard screen -->
+                    <li><a href="user_dashboard.html">User Dashboard</a></li>
+
+                    <!-- Link to join queue screen -->
+                    <li><a href="join_queue.html">Join Queue</a></li>
+
+                    <!-- Link to queue status screen -->
+                    <li><a href="queue_status.html">Queue Status</a></li>
+
+                    <!-- Link to history screen -->
+                    <li><a href="history.html">History</a></li>
+
+                    <!-- Link to login screen when user logs out -->
+                    <li><a href="login.html">Logout</a></li>
+                </ul>
+            </nav>
+        </header>
+
+        <!-- History Screen -->
+        <!-- Note: Mock data used -->
+        <h1>Queue History</h1>
+
+        <!-- Feature 1: Filter the history -->
+        <div class="card">
+            <h3>Filter</h3>
+            <label for="outcome-filter">Outcome:</label>
+            <!-- Changing the filter re-renders the table -->
+            <select id="outcome-filter" onchange="renderHistory()">
+                <option value="All">All</option>
+                <option value="Served">Served</option>
+                <option value="Left Queue">Left Queue</option>
+                <option value="Missed">Missed</option>
+            </select>
+        </div>
+
+        <!-- Feature 2: List of past queues joined -->
+        <div class="card">
+            <h3>Past Queues</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Service</th>
+                        <th>Wait Time</th>
+                        <th>Outcome</th>
+                    </tr>
+                </thead>
+                <!-- History rows are generated by renderHistory() -->
+                <tbody id="history-body"></tbody>
+            </table>
+            <p class="empty" id="empty-message" style="display:none;">No records match this filter.</p>
+        </div>
+
+        <!-- renderHistory(): builds the history table, applying the selected filter -->
+        <!-- Note: mock data used, no backend -->
+        <script>
+            // Mock history of past queues: date, service, wait time, and outcome
+            const history = [
+                { date: "2026-09-14", service: "Academic Advising", wait: 30, outcome: "Served" },
+                { date: "2026-09-11", service: "Financial Aid Office", wait: 15, outcome: "Served" },
+                { date: "2026-09-08", service: "Tutoring Services", wait: 20, outcome: "Left Queue" },
+                { date: "2026-09-03", service: "Academic Advising", wait: 45, outcome: "Missed" },
+                { date: "2026-08-29", service: "Financial Aid Office", wait: 10, outcome: "Served" },
+                { date: "2026-08-25", service: "Tutoring Services", wait: 5, outcome: "Served" }
+            ];
+
+            // Return the badge markup for an outcome
+            function outcomeBadge(outcome) {
+                let css = "badge-left";
+                if (outcome === "Served") {
+                    css = "badge-served";
+                } else if (outcome === "Missed") {
+                    css = "badge-missed";
+                }
+                return '<span class="badge ' + css + '">' + outcome + "</span>";
+            }
+
+            // Rebuild the history table for the selected filter
+            function renderHistory() {
+                const filter = document.getElementById("outcome-filter").value;
+                const body = document.getElementById("history-body");
+                const emptyMessage = document.getElementById("empty-message");
+
+                // Only keep records matching the filter ("All" keeps everything)
+                const rows = history.filter(function (record) {
+                    return filter === "All" || record.outcome === filter;
+                });
+
+                body.innerHTML = "";
+
+                // Toggle the empty message
+                emptyMessage.style.display = rows.length === 0 ? "block" : "none";
+
+                rows.forEach(function (record) {
+                    const row = document.createElement("tr");
+                    row.innerHTML =
+                        "<td>" + record.date + "</td>" +
+                        "<td>" + record.service + "</td>" +
+                        "<td>" + record.wait + " min</td>" +
+                        "<td>" + outcomeBadge(record.outcome) + "</td>";
+                    body.appendChild(row);
+                });
+            }
+
+            // Initial render
+            renderHistory();
+        </script>
+    </body>
+</html>
