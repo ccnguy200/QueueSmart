@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <!-- Scaling for browsers on both mobile and desktop -->
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+        <!-- Set title for browser tab -->
+        <title>Register</title>
+
+        <!-- Link google font 'Oswald' -->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+        <!-- Design & Customization -->
+        <style>
+            /* Body design */
+            body {
+                font-family: 'Oswald', sans-serif;
+                margin: 20px;
+                background-color: #f4f4f4;
+                color: #222;
+            }
+
+            /* Navigation header section */
+            header {
+                background-color: #1f3a5f;
+                color: #fff;
+                padding: 12px 20px;
+                border-radius: 6px;
+                margin-bottom: 20px;
+            }
+            header h2 {
+                margin: 0 0 8px 0;
+            }
+            nav ul {
+                list-style: none;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 18px;
+                margin: 0;
+                padding: 0;
+            }
+            nav a {
+                color: #cfe1f5;
+                text-decoration: none;
+                font-weight: 500;
+            }
+            nav a:hover {
+                color: #fff;
+                text-decoration: underline;
+            }
+
+            /* Feature card section */
+            .card {
+                background-color: #fff;
+                border-radius: 6px;
+                padding: 16px 20px;
+                margin-bottom: 20px;
+                box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+                max-width: 480px;
+            }
+
+            /* Form section */
+            .form-group {
+                margin-bottom: 14px;
+            }
+            label {
+                display: block;
+                font-weight: 500;
+                margin-bottom: 4px;
+            }
+            input {
+                font-family: inherit;
+                font-size: 1em;
+                padding: 7px;
+                width: 100%;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                box-sizing: border-box;
+            }
+            .required {
+                color: #c0392b;
+            }
+            .hint {
+                font-size: 0.85em;
+                color: #666;
+                margin: 4px 0 0 0;
+            }
+
+            /* Messages */
+            .error {
+                color: #c0392b;
+                margin: 8px 0;
+            }
+            .success {
+                color: #1b6b35;
+                margin: 8px 0;
+                font-weight: 600;
+            }
+
+            /* Button sections */
+            .btn {
+                display: inline-block;
+                border: none;
+                border-radius: 4px;
+                padding: 8px 16px;
+                font-family: inherit;
+                font-size: 0.95em;
+                cursor: pointer;
+                text-decoration: none;
+                background-color: #1f3a5f;
+                color: #fff;
+            }
+            .btn:hover {
+                background-color: #2c5185;
+            }
+            .btn-secondary {
+                display: inline-block;
+                border: none;
+                border-radius: 4px;
+                padding: 8px 16px;
+                font-family: inherit;
+                font-size: 0.95em;
+                cursor: pointer;
+                text-decoration: none;
+                background-color: #e2e6eb;
+                color: #333;
+            }
+            .btn-secondary:hover {
+                background-color: #cfd5dd;
+            }
+        </style>
+    </head>
+    <!-- Body content -->
+    <body>
+        <header>
+            <h2>QueueSmart</h2>
+            <!-- Navigation to the login screen -->
+            <nav>
+                <ul>
+                    <li><a href="login.html">Login</a></li>
+                    <li><a href="../index.html">Home</a></li>
+                </ul>
+            </nav>
+        </header>
+
+        <!-- Registration Screen -->
+        <!-- Note: Mock data used, no backend -->
+        <h1>Create an Account</h1>
+
+        <div class="card">
+            <!-- onsubmit calls registerUser(); client-side validation is required -->
+            <form id="register-form" onsubmit="registerUser(event)" novalidate>
+
+                <!-- Email is used as the username -->
+                <div class="form-group">
+                    <label for="email">Email (used as username): <span class="required">*</span></label>
+                    <input type="email" id="email" name="email" maxlength="100" required>
+                    <p class="hint">Required, must be a valid email address.</p>
+                </div>
+
+                <!-- Password: length limits enforced -->
+                <div class="form-group">
+                    <label for="password">Password: <span class="required">*</span></label>
+                    <input type="password" id="password" name="password" minlength="8" maxlength="15" required>
+                    <p class="hint">Required, 8 to 15 characters.</p>
+                </div>
+
+                <!-- Confirm Password: must match -->
+                <div class="form-group">
+                    <label for="confirm">Confirm Password: <span class="required">*</span></label>
+                    <input type="password" id="confirm" name="confirm" minlength="8" maxlength="15" required>
+                </div>
+
+                <!-- Validation error / success messages -->
+                <p class="error" id="form-error" style="display:none;"></p>
+                <p class="success" id="form-success" style="display:none;"></p>
+
+                <!-- Option 1: Submit the registration form -->
+                <button type="submit" class="btn">Create Account</button>
+
+                <!-- Option 2: Go back to the login screen -->
+                <a href="login.html" class="btn-secondary">Back to Login</a>
+            </form>
+        </div>
+
+        <!-- registerUser(): validates the form fields before "submitting" -->
+        <!-- Note: mock data used, no backend -->
+        <script>
+            // Simple email format check
+            function isValidEmail(email) {
+                return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+            }
+
+            // Validate the registration form and show a success message
+            function registerUser(event) {
+                event.preventDefault();
+
+                const email = document.getElementById("email").value.trim();
+                const password = document.getElementById("password").value;
+                const confirm = document.getElementById("confirm").value;
+
+                // Client-side validation
+                if (email === "") {
+                    return showError("Email is required.");
+                }
+                if (!isValidEmail(email)) {
+                    return showError("Please enter a valid email address.");
+                }
+                if (email.length > 100) {
+                    return showError("Email must be 100 characters or fewer.");
+                }
+                if (password === "") {
+                    return showError("Password is required.");
+                }
+                if (password.length < 8 || password.length > 15) {
+                    return showError("Password must be between 8 and 15 characters.");
+                }
+                if (confirm === "") {
+                    return showError("Please confirm your password.");
+                }
+                if (password !== confirm) {
+                    return showError("Passwords do not match.");
+                }
+
+                clearError();
+
+                // No backend in this assignment: confirm the account was "created"
+                const success = document.getElementById("form-success");
+                success.innerText = "Account created for " + email + ". You can now log in.";
+                success.style.display = "block";
+
+                // Reset the form fields
+                document.getElementById("register-form").reset();
+                return false;
+            }
+
+            // Show a validation error message
+            function showError(message) {
+                const error = document.getElementById("form-error");
+                const success = document.getElementById("form-success");
+                success.style.display = "none";
+                error.innerText = message;
+                error.style.display = "block";
+                return false;
+            }
+
+            // Hide the validation error message
+            function clearError() {
+                const error = document.getElementById("form-error");
+                error.innerText = "";
+                error.style.display = "none";
+            }
+        </script>
+    </body>
+</html>
