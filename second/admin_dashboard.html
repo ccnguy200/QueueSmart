@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <!-- Scaling for browsers on both mobile and desktop -->
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+        <!-- Set title for browser tab -->
+        <title>Admin Dashboard</title>
+
+        <!-- Link google font 'Oswald' -->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+        <!-- Design & Customization -->
+        <style>
+            /* Body design */
+            body {
+                font-family: 'Oswald', sans-serif;
+                margin: 20px;
+                background-color: #f4f4f4;
+                color: #222;
+            }
+
+            /* Navigation header section */
+            header {
+                background-color: #1f3a5f;
+                color: #fff;
+                padding: 12px 20px;
+                border-radius: 6px;
+                margin-bottom: 20px;
+            }
+            header h2 {
+                margin: 0 0 8px 0;
+            }
+            nav ul {
+                list-style: none;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 18px;
+                margin: 0;
+                padding: 0;
+            }
+            nav a {
+                color: #cfe1f5;
+                text-decoration: none;
+                font-weight: 500;
+            }
+            nav a:hover {
+                color: #fff;
+                text-decoration: underline;
+            }
+
+            /* Summary cards section */
+            .summary {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 15px;
+                margin-bottom: 20px;
+            }
+            .summary .card {
+                flex: 1 1 160px;
+                margin-bottom: 0;
+                text-align: center;
+            }
+            .summary .number {
+                font-size: 2em;
+                font-weight: 700;
+                margin: 4px 0;
+            }
+
+            /* Feature card section */
+            .card {
+                background-color: #fff;
+                border-radius: 6px;
+                padding: 16px 20px;
+                margin-bottom: 20px;
+                box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+            }
+
+            /* Table section */
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 10px;
+            }
+            th, td {
+                text-align: left;
+                padding: 10px;
+                border-bottom: 1px solid #ddd;
+            }
+            th {
+                background-color: #eef2f7;
+            }
+            tr:hover td {
+                background-color: #fafbfc;
+            }
+
+            /* Status badges */
+            .badge {
+                display: inline-block;
+                padding: 3px 10px;
+                border-radius: 12px;
+                font-size: 0.85em;
+                font-weight: 600;
+            }
+            .badge-open {
+                background-color: #d7f0dd;
+                color: #1b6b35;
+            }
+            .badge-closed {
+                background-color: #f6d7d7;
+                color: #97231f;
+            }
+
+            /* Button sections */
+            .btn, .btn-secondary {
+                display: inline-block;
+                border: none;
+                border-radius: 4px;
+                padding: 7px 14px;
+                font-family: inherit;
+                font-size: 0.95em;
+                cursor: pointer;
+                text-decoration: none;
+            }
+            .btn {
+                background-color: #1f3a5f;
+                color: #fff;
+            }
+            .btn:hover {
+                background-color: #2c5185;
+            }
+            .btn-secondary {
+                background-color: #e2e6eb;
+                color: #333;
+            }
+            .btn-secondary:hover {
+                background-color: #cfd5dd;
+            }
+        </style>
+    </head>
+    <!-- Body content -->
+    <body>
+        <header>
+            <h2>QueueSmart &mdash; Admin</h2>
+            <!-- Navigation to other admin files -->
+            <nav>
+                <ul>
+                    <!-- Link to admin dashboard screen -->
+                    <li><a href="admin_dashboard.html">Admin Dashboard</a></li>
+
+                    <!-- Link to service management screen -->
+                    <li><a href="service_management.html">Service Management</a></li>
+
+                    <!-- Link to queue management screen -->
+                    <li><a href="queue_management.html">Queue Management</a></li>
+
+                    <!-- Link to login screen when admin logs out -->
+                    <li><a href="login.html">Logout</a></li>
+                </ul>
+            </nav>
+        </header>
+
+        <!-- Admin Dashboard Screen -->
+        <!-- Note: Mock data used -->
+        <h1>Admin Dashboard</h1>
+
+        <!-- Feature 1: Overview of the system -->
+        <div class="summary">
+            <div class="card">
+                <p>Active Services</p>
+                <p class="number" id="stat-services">3</p>
+            </div>
+            <div class="card">
+                <p>People Waiting</p>
+                <p class="number" id="stat-waiting">9</p>
+            </div>
+            <div class="card">
+                <p>Open Queues</p>
+                <p class="number" id="stat-open">2</p>
+            </div>
+        </div>
+
+        <!-- Feature 2: List of services and current queue lengths -->
+        <div class="card">
+            <h3>Services &amp; Queue Lengths</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Service</th>
+                        <th>Priority</th>
+                        <th>Queue Length</th>
+                        <th>Status</th>
+                        <th>Quick Actions</th>
+                    </tr>
+                </thead>
+                <!-- Queue rows are generated by renderServices() -->
+                <tbody id="services-body"></tbody>
+            </table>
+        </div>
+
+        <!-- Feature 3: Quick actions -->
+        <div class="card">
+            <h3>Quick Actions</h3>
+            <p>Open or close a queue directly from the dashboard.</p>
+            <!-- Link to create a new service -->
+            <a href="service_management.html" class="btn">Create a Service</a>
+            <!-- Link to manage the queue for a selected service -->
+            <a href="queue_management.html" class="btn-secondary">Manage a Queue</a>
+        </div>
+
+        <!-- renderServices(): builds the service rows and wires the open/close buttons -->
+        <!-- Note: mock data used -->
+        <script>
+            // Mock services with their queue length and current status
+            const services = [
+                { id: 1, name: "Academic Advising", priority: "High", queueLength: 6, open: true },
+                { id: 2, name: "Financial Aid Office", priority: "Medium", queueLength: 3, open: true },
+                { id: 3, name: "Tutoring Services", priority: "Low", queueLength: 0, open: false }
+            ];
+
+            // Rebuild the table body and refresh the summary counters
+            function renderServices() {
+                const body = document.getElementById("services-body");
+                body.innerHTML = "";
+
+                services.forEach(function (service) {
+                    const row = document.createElement("tr");
+
+                    const statusBadge = service.open
+                        ? '<span class="badge badge-open">Open</span>'
+                        : '<span class="badge badge-closed">Closed</span>';
+
+                    row.innerHTML =
+                        "<td>" + service.name + "</td>" +
+                        "<td>" + service.priority + "</td>" +
+                        "<td>" + service.queueLength + "</td>" +
+                        "<td>" + statusBadge + "</td>" +
+                        '<td><button class="btn" onclick="toggleQueue(' + service.id + ')">' +
+                            (service.open ? "Close" : "Open") +
+                        "</button></td>";
+
+                    body.appendChild(row);
+                });
+
+                updateSummary();
+            }
+
+            // Quick action: open or close a queue
+            function toggleQueue(id) {
+                const service = services.find(function (s) { return s.id === id; });
+                if (service) {
+                    service.open = !service.open;
+                    renderServices();
+                }
+            }
+
+            // Refresh the summary counters from the mock data
+            function updateSummary() {
+                const waiting = services.reduce(function (sum, s) { return sum + s.queueLength; }, 0);
+                const open = services.filter(function (s) { return s.open; }).length;
+
+                document.getElementById("stat-services").innerText = services.length;
+                document.getElementById("stat-waiting").innerText = waiting;
+                document.getElementById("stat-open").innerText = open;
+            }
+
+            // Initial render
+            renderServices();
+        </script>
+    </body>
+</html>

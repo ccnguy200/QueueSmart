@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <!-- Scaling for browsers on both mobile and desktop -->
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+        <!-- Set title for browser tab -->
+        <title>User Dashboard</title>
+
+        <!-- Link google font 'Oswald'-->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+        
+        <!-- Design & Customization -->
+        <style>
+            /* Body design */
+            body {
+                font-family: 'Oswald', sans-serif;
+                margin: 20px;
+                background-color: #f4f4f4;
+            }
+
+            /* Navigation header section */
+
+            /* Feature card section */
+
+            /* Button sections */
+        </style>
+    </head>
+    <!-- Body content -->
+    <body>
+        <header>
+            <h2>QueueSmart</h2>
+            <!-- Navigation to other files -->
+            <nav>
+                <ul>
+                    <!-- Link to user dashboard screen -->
+                    <li><a href="user_dashboard.html">User Dashboard</a></li>
+
+                    <!-- Link to join queue screen -->
+                    <li><a href="join_queue.html">Join Queue</a></li>
+                    
+                    <!-- Link to queue status screen -->
+                    <li><a href="queue.html">Queue Status</a></li>
+
+                    <!-- Link to login screen when user logs out -->
+                    <li><a href="login.html">Logout</a></li>
+                </ul>
+            </nav>
+        </header>
+
+        <!-- User Dashboard Screen -->
+        <!-- Note: Mock Data used -->
+        <h1>User Dashboard</h1>
+
+        <!-- Feature 1: Overview of current queue status -->
+        <div class="card">
+            <h3>Current Queue Status</h3>
+            <!-- Service name -->
+            <p><strong>Service:</strong> Academic Advising</p>
+            <!-- Current position -->
+            <p><strong>Position:</strong> #4</p>
+            <!-- Current wait time -->
+            <p><strong>Current Wait Time:</strong> 10 minutes</p>
+            <!-- Click to view full queue status view -->
+            <a href="queue.html" class="btn">View Queue Status</a>
+        </div>
+
+        <!-- Feature 2: Notifications summary -->
+        <div class="card">
+            <h3>Notifications Summary</h3>
+            <ul>
+                <!-- Ex. Alert for change in user's position -->
+                 <li>Your position is now #1</li>
+            </ul>
+        </div>
+
+        <!-- Feature 3: Active services available -->
+        <div class="card">
+            <h3>Active services available</h3>
+            <p>Talk to an advisor about course selection.</p>
+            <!-- Link to join the queue -->
+            <a href="join_queue.html" class="btn">Join Queue</a>
+        </div>
+    </body>
+</html>
