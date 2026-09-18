@@ -10,12 +10,23 @@ function login() {
             return true;
         }
         else {
-            alert("Incorrect Login")
+            alert("Incorrect Login");
             return false;
         }
     }
 }
 
-// function register() {
+function register() {
+    let first = document.getElementById("first").value;
+    let second = document.getElementById("second").value;
 
-// }
+    if(usernames.contains(first)){
+        alert("That email is already registered with an account!")
+        return false;
+    }
+    else {
+        usernames.push(first);
+        passwords.push(second);
+        return true;
+    }
+}
