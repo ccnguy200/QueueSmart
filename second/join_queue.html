@@ -80,24 +80,29 @@
             </form>
         </div>
 
-        <!-- updateWaitTime(): will display estimated wait time for selected service by the uder -->
+        <!-- updateWaitTime(): will display estimated wait time for selected service by the user + fee to join -->
         <!-- Note: mock data used -->
         <script>
             function updateWaitTime() {
                 const serviceSelected = document.getElementById("service").value;
                 const waitTime = document.getElementById("est-wait");
+                const queueFee = document.getElementById("service-fee");
 
                 if (serviceSelected === "Advising") {
                     waitTime.innerText = "30 minutes";
+                    queueFee.innerText = "$20.00";
                 }
                 else if (serviceSelected === "Financial Aid") {
                     waitTime.innerText = "15 minutes";
+                    queueFee.innerText = "15.00";
                 }
                 else if (serviceSelected === "Tutoring") {
                     waitTime.innerText = "5 minutes";
+                    queueFee.innerText = "10.00";
                 }
                 else {
                     waitTime.innerText = "Please select a service.";
+                    queueFee.innerText = "$0.00";
                 }
             }
         </script>
