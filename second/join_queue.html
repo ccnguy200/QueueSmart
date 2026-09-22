@@ -49,9 +49,23 @@
                     </select>
                 </div>
 
-                <!-- Feature 2: View estimated wait time -->
+                <!-- Feature 2: View estimated wait time + price for queue -->
                 <div class="info-box">
                     <p style="margin: 0;"><stong>Estimated Wait Time:</stong> <span id="est-wait">Select a service above</span></p>
+                    <p style="margin: 5px 0 0 0;"><strong>Fee to Join Queue:</strong> <span id="service-fee">$0.00</span></p>
+                </div>
+
+                <!-- Calendar Feature: User can view time slots and join a queue from calendar -->
+                <!-- User selects date first -->
+                <div class="form-group">
+                    <label for="queue-date">Select Date: <span style="color:red;">*</span></label>
+                    <input type="date" id="queue-date" name="queue-date" required>
+                </div>
+
+                <!-- User selects time slot next -->
+                <div class="form-group">
+                    <label for="queue-time">Select Time Slot: <span style="color:red;">*</span></label>
+                    <input type="time" id="queue-time" name="queue-time" required>
                 </div>
 
                 <!-- Feature 3: Join or leave a queue -->
@@ -66,24 +80,29 @@
             </form>
         </div>
 
-        <!-- updateWaitTime(): will display estimated wait time for selected service by the uder -->
+        <!-- updateWaitTime(): will display estimated wait time for selected service by the user + fee to join -->
         <!-- Note: mock data used -->
         <script>
             function updateWaitTime() {
                 const serviceSelected = document.getElementById("service").value;
                 const waitTime = document.getElementById("est-wait");
+                const queueFee = document.getElementById("service-fee");
 
                 if (serviceSelected === "Advising") {
                     waitTime.innerText = "30 minutes";
+                    queueFee.innerText = "$20.00";
                 }
                 else if (serviceSelected === "Financial Aid") {
                     waitTime.innerText = "15 minutes";
+                    queueFee.innerText = "15.00";
                 }
                 else if (serviceSelected === "Tutoring") {
                     waitTime.innerText = "5 minutes";
+                    queueFee.innerText = "10.00";
                 }
                 else {
                     waitTime.innerText = "Please select a service.";
+                    queueFee.innerText = "$0.00";
                 }
             }
         </script>

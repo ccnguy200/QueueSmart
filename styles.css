@@ -61,3 +61,278 @@ nav li a:hover {
 .feature-right {
    margin-left: 50px;
 }
+
+/* Cards (white containers used across the screens) */
+.card {
+   border-radius: 10px;
+   background: white;
+   padding: 15px 20px;
+   margin: 10px 0;
+}
+
+/* Tables */
+table {
+   width: 100%;
+   border-collapse: collapse;
+   margin-top: 10px;
+}
+
+th, td {
+   text-align: left;
+   padding: 10px;
+   border-bottom: 1px solid #ccc;
+}
+
+th {
+   background-color: lightblue;
+}
+
+tr:hover td {
+   background-color: #f2f7fa;
+}
+
+/* Forms */
+label {
+   display: block;
+   font-weight: bold;
+   margin-bottom: 4px;
+}
+
+input, select, textarea {
+   font-family: inherit;
+   font-size: 1em;
+   padding: 7px;
+   width: 100%;
+   max-width: 420px;
+   border: 1px solid #999;
+   border-radius: 4px;
+   box-sizing: border-box;
+}
+
+textarea {
+   resize: vertical;
+   min-height: 70px;
+}
+
+.form-group {
+   margin-bottom: 14px;
+}
+
+.required {
+   color: firebrick;
+}
+
+.hint {
+   font-size: 0.85em;
+   color: #555;
+   margin: 4px 0 0 0;
+}
+
+/* Buttons */
+.btn, .btn-secondary, .btn-danger {
+   display: inline-block;
+   border: none;
+   border-radius: 4px;
+   padding: 8px 16px;
+   font-family: inherit;
+   font-size: 0.95em;
+   cursor: pointer;
+   text-decoration: none;
+}
+
+.btn {
+   background-color: darkblue;
+   color: white;
+}
+
+.btn:hover {
+   background-color: lightblue;
+   color: darkblue;
+}
+
+.btn-secondary {
+   background-color: lightblue;
+   color: darkblue;
+}
+
+.btn-secondary:hover {
+   background-color: darkblue;
+   color: white;
+}
+
+.btn-danger {
+   background-color: firebrick;
+   color: white;
+}
+
+.btn-danger:hover {
+   background-color: #8b1a1a;
+}
+
+/* Keep button links readable (a:link / a:visited would otherwise override the colour) */
+a.btn:link, a.btn:visited {
+   color: white;
+}
+
+a.btn-secondary:link, a.btn-secondary:visited {
+   color: darkblue;
+}
+
+a.btn-danger:link, a.btn-danger:visited {
+   color: white;
+}
+
+.actions button {
+   margin-right: 5px;
+   margin-bottom: 4px;
+}
+
+.toolbar {
+   margin-top: 12px;
+}
+
+.toolbar button {
+   margin-right: 8px;
+   margin-bottom: 6px;
+}
+
+/* Badges */
+.badge {
+   display: inline-block;
+   padding: 3px 10px;
+   border-radius: 12px;
+   font-size: 0.85em;
+   font-weight: bold;
+}
+
+.badge-open, .badge-served, .badge-low {
+   background-color: #d7f0dd;
+   color: #1b6b35;
+}
+
+.badge-closed, .badge-high, .badge-missed {
+   background-color: #f6d7d7;
+   color: #97231f;
+}
+
+.badge-medium, .badge-ready {
+   background-color: #fdf0d0;
+   color: #8a6100;
+}
+
+.badge-waiting, .badge-left {
+   background-color: lightblue;
+   color: darkblue;
+}
+
+/* Summary + stat blocks */
+.summary {
+   display: flex;
+   flex-wrap: wrap;
+   gap: 15px;
+   margin: 15px 0;
+}
+
+.summary .card {
+   flex: 1 1 160px;
+   margin: 0;
+   text-align: center;
+}
+
+.stat {
+   background-color: rgb(224, 231, 235);
+   border-radius: 6px;
+   padding: 10px 16px;
+   min-width: 150px;
+}
+
+.number {
+   font-size: 1.6em;
+   font-weight: bold;
+   margin: 2px 0 0 0;
+}
+
+.summary .number {
+   font-size: 2em;
+   margin: 4px 0;
+}
+
+/* Current-status block (queue status screen) */
+.current {
+   display: flex;
+   flex-wrap: wrap;
+   gap: 30px;
+   align-items: center;
+}
+
+.current .label {
+   font-size: 0.9em;
+}
+
+.current .value {
+   font-size: 1.8em;
+   font-weight: bold;
+}
+
+/* Progress tracker (queue status screen) */
+.tracker {
+   display: flex;
+   flex-wrap: wrap;
+   gap: 10px;
+   margin-top: 15px;
+}
+
+.step {
+   flex: 1 1 120px;
+   text-align: center;
+   padding: 10px;
+   border-radius: 6px;
+   background-color: rgb(224, 231, 235);
+   color: #555;
+}
+
+.step.done {
+   background-color: #d7f0dd;
+   color: #1b6b35;
+   font-weight: bold;
+}
+
+.step.active {
+   background-color: darkblue;
+   color: white;
+   font-weight: bold;
+}
+
+/* Status updates list (queue status screen) */
+.updates {
+   list-style: none;
+   padding: 0;
+   margin: 0;
+}
+
+.updates li {
+   padding: 10px;
+   border-bottom: 1px solid #ddd;
+}
+
+.updates li:last-child {
+   border-bottom: none;
+}
+
+.updates .time {
+   color: #555;
+   font-size: 0.85em;
+}
+
+/* Highlight the next person to be served (queue management) */
+.next-up td {
+   background-color: #e8f4ea;
+   font-weight: bold;
+}
+
+/* Empty-state text */
+.empty {
+   color: #555;
+   font-style: italic;
+   padding: 12px 0;
+}
