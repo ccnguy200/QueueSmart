@@ -17,13 +17,37 @@
                     <label for="second">Password:</label>
                     <input type="password" id="second" name="second" size="10" minlength="8" maxlength="15" required>
                 </p>
-                
+                <p>
+                    <label for="role">Account Type:</label>
+                    <select id="role" name="role" onChange="adminRegister()">
+                        <option value="user">User</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </p>
+
+                <!-- Only shows for admin -->
+                 <div id="adminReg" style="display:none;">
+                    <p>
+                        <label for="cardNumber">Card Number:</label>
+                        <input type="text" id="cardNumber" name="cardNumber" size="20" maxlength="16">
+                    </p>
+                    <p>
+                        <label for="cardExpiry">Expiry (MM/YY):</label>
+                        <input type="text" id="cardExpiry" name="cardExpiry" size="10" maxlength="5">
+                    </p>
+                    <p>
+                        <label for="cardCVV">CVV:</label>
+                        <input type="text" id="cardCVV" name="cardCVV" size="5" maxlength="3">
+                    </p>
+                </div>
+
                 <p>
                     <button type="submit">Register</button>
                 </p>
             </form>
         </div>
         
+        <button onclick="resetData()">Reset All Users</button>
         <a href="../index.html">Back to Home</a>
     </body>
 </html>
