@@ -1,174 +1,11 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <!-- Scaling for browsers on both mobile and desktop -->
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
         <!-- Set title for browser tab -->
         <title>Service Management</title>
 
-        <!-- Link google font 'Oswald' -->
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
-        <!-- Design & Customization -->
-        <style>
-            /* Body design */
-            body {
-                font-family: 'Oswald', sans-serif;
-                margin: 20px;
-                background-color: #f4f4f4;
-                color: #222;
-            }
-
-            /* Navigation header section */
-            header {
-                background-color: #1f3a5f;
-                color: #fff;
-                padding: 12px 20px;
-                border-radius: 6px;
-                margin-bottom: 20px;
-            }
-            header h2 {
-                margin: 0 0 8px 0;
-            }
-            nav ul {
-                list-style: none;
-                display: flex;
-                flex-wrap: wrap;
-                gap: 18px;
-                margin: 0;
-                padding: 0;
-            }
-            nav a {
-                color: #cfe1f5;
-                text-decoration: none;
-                font-weight: 500;
-            }
-            nav a:hover {
-                color: #fff;
-                text-decoration: underline;
-            }
-
-            /* Feature card section */
-            .card {
-                background-color: #fff;
-                border-radius: 6px;
-                padding: 16px 20px;
-                margin-bottom: 20px;
-                box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
-            }
-
-            /* Form section */
-            .form-group {
-                margin-bottom: 14px;
-            }
-            label {
-                display: block;
-                font-weight: 500;
-                margin-bottom: 4px;
-            }
-            input, select, textarea {
-                font-family: inherit;
-                font-size: 1em;
-                padding: 7px;
-                width: 100%;
-                max-width: 420px;
-                border: 1px solid #ccc;
-                border-radius: 4px;
-                box-sizing: border-box;
-            }
-            textarea {
-                resize: vertical;
-                min-height: 70px;
-            }
-            .required {
-                color: #c0392b;
-            }
-            .hint {
-                font-size: 0.85em;
-                color: #666;
-                margin: 4px 0 0 0;
-            }
-
-            /* Table section */
-            table {
-                width: 100%;
-                border-collapse: collapse;
-                margin-top: 10px;
-            }
-            th, td {
-                text-align: left;
-                padding: 10px;
-                border-bottom: 1px solid #ddd;
-                vertical-align: top;
-            }
-            th {
-                background-color: #eef2f7;
-            }
-            tr:hover td {
-                background-color: #fafbfc;
-            }
-
-            /* Priority badges */
-            .badge {
-                display: inline-block;
-                padding: 3px 10px;
-                border-radius: 12px;
-                font-size: 0.85em;
-                font-weight: 600;
-            }
-            .badge-low {
-                background-color: #d7f0dd;
-                color: #1b6b35;
-            }
-            .badge-medium {
-                background-color: #fdf0d0;
-                color: #8a6100;
-            }
-            .badge-high {
-                background-color: #f6d7d7;
-                color: #97231f;
-            }
-
-            /* Button sections */
-            .btn, .btn-secondary, .btn-danger {
-                display: inline-block;
-                border: none;
-                border-radius: 4px;
-                padding: 7px 14px;
-                font-family: inherit;
-                font-size: 0.95em;
-                cursor: pointer;
-                text-decoration: none;
-            }
-            .btn {
-                background-color: #1f3a5f;
-                color: #fff;
-            }
-            .btn:hover {
-                background-color: #2c5185;
-            }
-            .btn-secondary {
-                background-color: #e2e6eb;
-                color: #333;
-            }
-            .btn-secondary:hover {
-                background-color: #cfd5dd;
-            }
-            .btn-danger {
-                background-color: #c0392b;
-                color: #fff;
-            }
-            .btn-danger:hover {
-                background-color: #a5311f;
-            }
-            .actions button {
-                margin-right: 6px;
-                margin-bottom: 4px;
-            }
-        </style>
+        <!-- Link style sheet for uniform design and text -->
+        <link rel="stylesheet" href="../styles.css">
     </head>
     <!-- Body content -->
     <body>
@@ -193,14 +30,14 @@
         </header>
 
         <!-- Service Management Screen -->
-        <!-- Note: Mock data used -->
+        <!-- Note: Mock Data used -->
         <h1>Service Management</h1>
 
         <!-- Feature 1: Create or edit a service -->
         <div class="card">
             <h3 id="form-title">Create a Service</h3>
 
-            <!-- onsubmit calls saveService(); client-side validation is required -->
+            <!-- onsubmit calls saveService() -->
             <form id="service-form" onsubmit="saveService(event)" novalidate>
 
                 <!-- Service Name: required, max 100 characters -->
@@ -216,7 +53,7 @@
                     <textarea id="service-desc" name="service-desc" required></textarea>
                 </div>
 
-                <!-- Expected Duration: required, positive number of minutes -->
+                <!-- Expected Duration: required, in minutes -->
                 <div class="form-group">
                     <label for="service-duration">Expected Duration (minutes): <span class="required">*</span></label>
                     <input type="number" id="service-duration" name="service-duration" min="1" max="480" step="1" required>
@@ -234,13 +71,13 @@
                     </select>
                 </div>
 
-                <!-- Form error message area -->
+                <!-- Form error message -->
                 <p id="form-error" style="color:#c0392b; display:none;"></p>
 
                 <!-- Option 1: Save the service -->
                 <button type="submit" class="btn" id="save-btn">Save Service</button>
 
-                <!-- Option 2: Cancel an edit and reset the form -->
+                <!-- Option 2: Cancel an edit -->
                 <button type="button" class="btn-secondary" onclick="resetForm()">Cancel</button>
             </form>
         </div>
@@ -258,14 +95,12 @@
                         <th>Actions</th>
                     </tr>
                 </thead>
-                <!-- Service rows are generated by renderServices() -->
+                <!-- Rows are added by renderServices() -->
                 <tbody id="services-body"></tbody>
             </table>
         </div>
 
-        <!-- renderServices(): builds the service table -->
-        <!-- saveService(): validates and creates/updates a service -->
-        <!-- Note: mock data used, no backend -->
+        <!-- Note: Mock Data used, no backend -->
         <script>
             // Mock services
             let services = [
@@ -292,15 +127,16 @@
                 }
             ];
 
-            // Tracks the service being edited (null means "create" mode)
+            // The service being edited (null means create mode)
             let editingId = null;
 
-            // Rebuild the services table
+            // Build the services table
             function renderServices() {
                 const body = document.getElementById("services-body");
                 body.innerHTML = "";
 
-                services.forEach(function (service) {
+                for (let i = 0; i < services.length; i++) {
+                    const service = services[i];
                     const row = document.createElement("tr");
 
                     row.innerHTML =
@@ -314,7 +150,7 @@
                         "</td>";
 
                     body.appendChild(row);
-                });
+                }
             }
 
             // Return the badge markup for a priority level
@@ -323,19 +159,15 @@
                 return '<span class="badge badge-' + level + '">' + priority + "</span>";
             }
 
-            // Validate the form and create or update the service
+            // Validate the form and create or update a service
             function saveService(event) {
                 event.preventDefault();
 
-                const nameInput = document.getElementById("service-name");
-                const descInput = document.getElementById("service-desc");
-                const durationInput = document.getElementById("service-duration");
-                const priorityInput = document.getElementById("service-priority");
-
-                const name = nameInput.value.trim();
-                const description = descInput.value.trim();
-                const duration = Number(durationInput.value);
-                const priority = priorityInput.value;
+                const name = document.getElementById("service-name").value.trim();
+                const description = document.getElementById("service-desc").value.trim();
+                const durationText = document.getElementById("service-duration").value;
+                const duration = Number(durationText);
+                const priority = document.getElementById("service-priority").value;
 
                 // Client-side validation
                 if (name === "") {
@@ -347,7 +179,7 @@
                 if (description === "") {
                     return showError("Description is required.");
                 }
-                if (durationInput.value === "" || isNaN(duration) || duration < 1 || duration > 480) {
+                if (durationText === "" || isNaN(duration) || duration < 1 || duration > 480) {
                     return showError("Expected Duration must be between 1 and 480 minutes.");
                 }
                 if (priority === "") {
@@ -357,16 +189,31 @@
                 clearError();
 
                 if (editingId === null) {
-                    // Create a new service
-                    const newId = services.length ? Math.max.apply(null, services.map(function (s) { return s.id; })) + 1 : 1;
-                    services.push({ id: newId, name: name, description: description, duration: duration, priority: priority });
+                    // Create a new service with the next available id
+                    let newId = 1;
+                    for (let i = 0; i < services.length; i++) {
+                        if (services[i].id >= newId) {
+                            newId = services[i].id + 1;
+                        }
+                    }
+
+                    services.push({
+                        id: newId,
+                        name: name,
+                        description: description,
+                        duration: duration,
+                        priority: priority
+                    });
                 } else {
-                    // Update the existing service
-                    const service = services.find(function (s) { return s.id === editingId; });
-                    service.name = name;
-                    service.description = description;
-                    service.duration = duration;
-                    service.priority = priority;
+                    // Update the service being edited
+                    for (let i = 0; i < services.length; i++) {
+                        if (services[i].id === editingId) {
+                            services[i].name = name;
+                            services[i].description = description;
+                            services[i].duration = duration;
+                            services[i].priority = priority;
+                        }
+                    }
                 }
 
                 renderServices();
@@ -375,8 +222,15 @@
 
             // Load a service into the form for editing
             function editService(id) {
-                const service = services.find(function (s) { return s.id === id; });
-                if (!service) {
+                let service = null;
+
+                for (let i = 0; i < services.length; i++) {
+                    if (services[i].id === id) {
+                        service = services[i];
+                    }
+                }
+
+                if (service === null) {
                     return;
                 }
 
@@ -398,16 +252,24 @@
                 if (!confirm("Delete this service? This cannot be undone.")) {
                     return;
                 }
-                services = services.filter(function (s) { return s.id !== id; });
+
+                const remaining = [];
+                for (let i = 0; i < services.length; i++) {
+                    if (services[i].id !== id) {
+                        remaining.push(services[i]);
+                    }
+                }
+                services = remaining;
 
                 // If the deleted service was being edited, reset the form
                 if (editingId === id) {
                     resetForm();
                 }
+
                 renderServices();
             }
 
-            // Return the form to "create" mode
+            // Return the form to create mode
             function resetForm() {
                 document.getElementById("service-form").reset();
                 editingId = null;
@@ -416,7 +278,7 @@
                 clearError();
             }
 
-            // Show a validation error message
+            // Show a validation error
             function showError(message) {
                 const error = document.getElementById("form-error");
                 error.innerText = message;
@@ -424,14 +286,13 @@
                 return false;
             }
 
-            // Hide the validation error message
+            // Hide the validation error
             function clearError() {
                 const error = document.getElementById("form-error");
                 error.innerText = "";
                 error.style.display = "none";
             }
 
-            // Initial render
             renderServices();
         </script>
     </body>
