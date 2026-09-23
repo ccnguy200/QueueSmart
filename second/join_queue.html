@@ -68,6 +68,31 @@
                     <input type="time" id="queue-time" name="queue-time" required>
                 </div>
 
+                <!-- Payment Feature: User will input CC information to pay for for service -->
+                <!-- User inputs card name first -->
+                <div class="form-group">
+                    <label for="card-name">Cardholder Name: <span style="color:red;">*</span></label>
+                    <input type="text" id="card-name" name="card-name" required>
+                </div>
+                
+                <!-- User inputs card num next -->
+                <div class="form-group">
+                    <label for="card-number">Card Number: <span style="color:red;">*</span></label>
+                    <input type="text" id="card-number" name="card-number" required>
+                </div>
+
+                <!-- User inputs exp date next -->
+                <div class="form-group">
+                    <label for="exp-date">Expiration Date: <span style="color:red;">*</span></label>
+                    <input type="text" id="exp-date" name="exp-date" required>
+                </div>
+
+                <!-- User inputs cvv num next -->
+                <div class="form-group">
+                    <label for="cvv">CVV: <span style="color:red;">*</span></label>
+                        <input type="password" id="cvv" name="cvv" required>
+                </div>
+
                 <!-- Feature 3: Join or leave a queue -->
                 <div class="form-group">
                     <!-- Option 1: Join queue -->
