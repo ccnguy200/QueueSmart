@@ -11,11 +11,11 @@
             <form onsubmit="return register()" method="POST">
                 <p>
                     <label for="first">Username:</label>
-                    <input type="email" name="first" id="first" size="10" required>
+                    <input type="email" name="first" id="first" size="10" required placeholder="example@email.com">
                 </p>
                 <p>
                     <label for="second">Password:</label>
-                    <input type="password" id="second" name="second" size="10" minlength="8" maxlength="15" required>
+                    <input type="password" id="second" name="second" size="10" minlength="8" maxlength="15" required placeholder="password">
                 </p>
                 <p>
                     <label for="role">Account Type:</label>
@@ -29,15 +29,15 @@
                  <div id="adminReg" style="display:none;">
                     <p>
                         <label for="cardNumber">Card Number:</label>
-                        <input type="text" id="cardNumber" name="cardNumber" size="20" maxlength="16">
+                        <input type="text" id="cardNumber" name="cardNumber" size="20" maxlength="16" placeholder="1234567890123456">
                     </p>
                     <p>
                         <label for="cardExpiry">Expiry (MM/YY):</label>
-                        <input type="text" id="cardExpiry" name="cardExpiry" size="10" maxlength="5">
+                        <input type="text" id="cardExpiry" name="cardExpiry" size="10" maxlength="5" placeholder="MM/YY">
                     </p>
                     <p>
                         <label for="cardCVV">CVV:</label>
-                        <input type="text" id="cardCVV" name="cardCVV" size="5" maxlength="3">
+                        <input type="text" id="cardCVV" name="cardCVV" size="5" maxlength="3" placeholder="123">
                     </p>
                 </div>
 

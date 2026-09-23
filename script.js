@@ -22,7 +22,7 @@ function login() {
 }
 
 function register() {
-    let first = document.getElementById("first").value.toLowercase();
+    let first = document.getElementById("first").value.toLowerCase();
     let second = document.getElementById("second").value;
     let role = document.getElementById("role").value;
 
