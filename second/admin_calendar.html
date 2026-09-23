@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Admin Calendar</title> 
+        <link rel="stylesheet" href="../styles.css">      
+    </head>
+    <body>
+        <div class="feature">
+            <h2>QueueSmart &mdash; Admin</h2>
+            <nav>
+                <ul>
+                    <li><a href="admin_dashboard.html">Admin Dashboard</a></li>
+                    <li><a href="service_management.html">Service Management</a></li>
+                    <li><a href="queue_management.html">Queue Management</a></li>
+                    <li><a href="admin_calendar.html">View Calendar</a></li>
+                    <li><a href="login.html">Logout</a></li>
+                </ul>
+            </nav>
+        </div>
+
+        <div class="card">
+            <h1>Admin Calendar</h1>
+            <h3 id="month-label"></h3>
+            <p>
+                <button class="btn" onclick="previousMonth()">Previous</button>
+                <button class="btn" onclick="nextMonth()">Next</button>
+            </p>
+        </div>
+
+        <div class="feature">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Sunday</th>
+                        <th>Monday</th>
+                        <th>Tuesday</th>
+                        <th>Wednesday</th>
+                        <th>Thursday</th>
+                        <th>Friday</th>
+                        <th>Saturday</th>
+                    </tr>
+                </thead>
+                <tbody id="calendar"></tbody>
+            </table>
+        </div>
+
+        <div class="feature">
+            <h3>Events</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Title</th>
+                    </tr>
+                </thead>
+                <tbody id="events-body"></tbody>
+            </table>
+        </div>
+
+        <script>
+            const events = [
+                {date: "2026-09-24", title: "Academic Advising"},
+                {date: "2026-10-25", title: "Financial Aid Office"},
+                {date: "2026-11-26", title: "Tutoring Services"}
+            ];
+
+            let month = new Date().getMonth();
+            let year = new Date().getFullYear();
+
+            const months = [ "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+
+            function createCalendar(){
+                document.getElementById("month-label").innerText = months[month] + " " + year;
+                
+                const body = document.getElementById("calendar");
+                body.innerHTML = "";
+
+                const day = new Date(year, month, 1).getDay();
+                const numDays = new Date(year, month+1, 0).getDate();
+
+                let row = document.createElement("tr");
+                let curr = 1;
+
+                for (let i = 0; i < day; i++){
+                    row.appendChild(document.createElement("td"));
+                }
+
+                while (curr <= numDays){
+                    if(row.children.length == 7){
+                        body.appendChild(row);
+                        row = document.createElement("tr");
+                    }
+
+                    const cell = document.createElement("td");
+                    cell.innerText = curr;
+                    
+                    for (let e = 0; e < events.length; e++){
+                        const parts = events[e].date.split("-");
+                        if (Number(parts[0]) === year && Number(parts[1]) - 1 === month && Number(parts[2]) === curr){
+                            cell.style.backgroundColor = "#ffc078";
+                        }   
+                    }
+                    
+                    row.appendChild(cell);
+                    curr++;
+                }
+
+                while(row.children.length < 7){
+                    row.appendChild(document.createElement("td"));
+                }
+                body.appendChild(row);
+            }
+
+            function previousMonth(){
+                month = month - 1;
+                if(month < 0){
+                    month = 11;
+                    year = year - 1;
+                }
+                createCalendar();
+            }
+
+            function nextMonth(){
+                month = month + 1;
+                if(month > 11){
+                    month = 0;
+                    year = year + 1;
+                }
+                createCalendar();
+            }
+
+            function getEvents(){
+                const body = document.getElementById("events-body");
+                body.innerHTML = "";
+
+                for (let i=0; i < events.length; i++){
+                    const row = document.createElement("tr");
+                    row.innerHTML = 
+                        "<td>" + events[i].date + "</td>" +
+                        "<td>" + events[i].title + "</td>";
+                    body.appendChild(row);
+                }
+            }
+
+            createCalendar();
+            getEvents();
+        </script>
+    </body>
+</html>

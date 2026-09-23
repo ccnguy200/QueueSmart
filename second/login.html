@@ -19,24 +19,26 @@
                 </p>
                 
                 <p>
-                    <button type="submit">Submit</button>
+                    <button class="btn" type="submit">Submit</button>
                 </p>
             </form>
-
-            <p>TEST ACCOUNTS - MOCK DATA:
-                <ul>User:
-                    <li>Username: user@email.com</li>
-                    <li>Password: password</li>
-                </ul>
-                <ul>Admin:
-                    <li>Username: admin@email.com</li>
-                    <li>Password: password</li>
-                </ul>
-            </p>
+            
+            <a href="../index.html">Back to Home</a>
 
         </div>
-        
-        <button onclick="resetData()">Reset All Users</button>
-        <a href="../index.html">Back to Home</a>
+
+        <div class="feature" style="font-size: 3; color: darkred">
+            <p><button class="btn-secondary" onclick="resetData()">Reset All Users</button></p>
+            <em>TEST ACCOUNTS - MOCK DATA:</em>
+            <ul><strong>User:</strong>
+                <li>Username: user@email.com</li>
+                <li>Password: password</li>
+            </ul>
+            <ul><strong>Admin:</strong>
+                <li>Username: admin@email.com</li>
+                <li>Password: password</li>
+            </ul>
+        </div>
+
     </body>
 </html>
