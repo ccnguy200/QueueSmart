@@ -74,25 +74,25 @@
                 <!-- User inputs card name first -->
                 <div class="form-group">
                     <label for="card-name">Cardholder Name: <span style="color:red;">*</span></label>
-                    <input type="text" id="card-name" name="card-name" required>
+                    <input type="text" id="card-name" name="card-name" placeholder="ex. Mary Jane" required>
                 </div>
                 
                 <!-- User inputs card num next -->
                 <div class="form-group">
                     <label for="card-number">Card Number: <span style="color:red;">*</span></label>
-                    <input type="text" id="card-number" name="card-number" required>
+                    <input type="text" id="card-number" name="card-number" placeholder="ex. 1234 5678 9876 5432" maxlength="16" required>
                 </div>
 
                 <!-- User inputs exp date next -->
                 <div class="form-group">
                     <label for="exp-date">Expiration Date: <span style="color:red;">*</span></label>
-                    <input type="text" id="exp-date" name="exp-date" required>
+                    <input type="text" id="exp-date" name="exp-date" placeholder="ex. MM/YY" maxlength="5" required>
                 </div>
 
                 <!-- User inputs cvv num next -->
                 <div class="form-group">
                     <label for="cvv">CVV: <span style="color:red;">*</span></label>
-                        <input type="password" id="cvv" name="cvv" required>
+                        <input type="password" id="cvv" name="cvv" placeholder="ex. 123" maxlength="3" required>
                 </div>
 
                 <!-- Feature 3: Join or leave a queue -->
