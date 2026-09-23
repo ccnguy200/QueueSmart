@@ -5,7 +5,7 @@ let users = JSON.parse(localStorage.getItem("users")) ||
 };
 
 function login() {
-    let username = document.getElementById("email").value;
+    let username = document.getElementById("email").value.toLowerCase();
     let password = document.getElementById("secret").value;
     if(users[username] && (users[username].password === password)) {
         alert("Login Successful");
@@ -22,7 +22,7 @@ function login() {
 }
 
 function register() {
-    let first = document.getElementById("first").value;
+    let first = document.getElementById("first").value.toLowercase();
     let second = document.getElementById("second").value;
     let role = document.getElementById("role").value;
 
