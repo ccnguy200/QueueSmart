@@ -1,5 +1,4 @@
 let users = 
-// JSON.parse(localStorage.getItem("users")) || 
 {
     "admin@email.com": {password: "password", role: "admin"},
     "user@email.com": {password: "password", role: "user"}
@@ -44,7 +43,13 @@ function register() {
     }
 
     users[first] = {password: second, role: role};
-    // localStorage.setItem("users", JSON.stringify(users));
+    
+    if(users[first].role == "admin"){
+        window.location.href = "admin_dashboard.html";
+    }
+    else{
+        window.location.href = "user_dashboard.html";
+    }
     alert("Register Successful")
     return false;
 }
