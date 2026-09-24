@@ -1,4 +1,5 @@
-let users = JSON.parse(localStorage.getItem("users")) || 
+let users = 
+// JSON.parse(localStorage.getItem("users")) || 
 {
     "admin@email.com": {password: "password", role: "admin"},
     "user@email.com": {password: "password", role: "user"}
@@ -43,7 +44,7 @@ function register() {
     }
 
     users[first] = {password: second, role: role};
-    localStorage.setItem("users", JSON.stringify(users));
+    // localStorage.setItem("users", JSON.stringify(users));
     alert("Register Successful")
     return false;
 }
