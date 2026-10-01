@@ -189,6 +189,11 @@
                     else if (!isPast(events[i].date)){
                         // Upcoming: a reminder is sent 1 day before, and it can be changed
                         reminder = "1 day before (" + dayBefore(events[i].date) + ")";
+
+                        // No reminder if the day before has already passed
+                        if (isPast(dayBeforeText(events[i].date))){
+                            reminder = "-";
+                        }
                         actions =
                             '<button class="btn-secondary" onclick="openReschedule(' + i + ')">Reschedule</button> ' +
                             '<button class="btn-danger" onclick="cancelEvent(' + i + ')">Cancel</button>';
@@ -229,6 +234,21 @@
                 const date = toDate(dateText);
                 date.setDate(date.getDate() - 1);
                 return (date.getMonth() + 1) + "/" + date.getDate();
+            }
+
+            // The day before a date, as "YYYY-MM-DD"
+            function dayBeforeText(dateText){
+                const date = toDate(dateText);
+                date.setDate(date.getDate() - 1);
+                let month = date.getMonth() + 1;
+                let day = date.getDate();
+                if (month < 10){
+                    month = "0" + month;
+                }
+                if (day < 10){
+                    day = "0" + day;
+                }
+                return date.getFullYear() + "-" + month + "-" + day;
             }
 
             // Turn "13:00" into "1:00 PM"

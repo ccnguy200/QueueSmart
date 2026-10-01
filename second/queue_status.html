@@ -135,8 +135,8 @@
             <ul class="updates" id="updates-list"></ul>
         </div>
 
-        <!-- Actions -->
-        <div class="card">
+        <!-- Actions (toolbar adds space when the buttons wrap) -->
+        <div class="card toolbar">
             <!-- Simulates the next status change (UI only) -->
             <button class="btn" onclick="advanceStatus()">Simulate Next Update</button>
 
@@ -194,6 +194,9 @@
             // Timer that ends the 10 minutes to rejoin
             let rejoinTimer = null;
 
+            // true when the 10 minutes to rejoin are over
+            let rejoinOver = false;
+
             // Mock status updates: [message, time], newest first
             let updates = [
                 ["Your position is now #3.", "10:05 AM"],
@@ -219,7 +222,12 @@
             function renderStatus() {
                 const status = statuses[statusIndex];
 
-                document.getElementById("position").innerText = "#" + position;
+                // Position is unknown after a missed turn
+                if (missed) {
+                    document.getElementById("position").innerText = "-";
+                } else {
+                    document.getElementById("position").innerText = "#" + position;
+                }
                 // Wait time is 0 once the user has been served, and unknown after a missed turn
                 if (status === "Served") {
                     document.getElementById("wait-time").innerText = "0 minutes";
@@ -245,7 +253,7 @@
 
                     if (i < statusIndex) {
                         step.className = "step done";
-                    } else if (i === statusIndex) {
+                    } else if (i === statusIndex && !missed) {
                         step.className = "step active";
                     }
                 }
@@ -311,6 +319,10 @@
 
             // Move to the next status (UI simulation)
             function advanceStatus() {
+                if (missed && rejoinOver) {
+                    showPopup("The 10 minutes to rejoin are over. Please click Leave Queue and join again.");
+                    return;
+                }
                 if (missed) {
                     showPopup("You missed your turn. Please rejoin the queue first.");
                     return;
@@ -386,6 +398,7 @@
                 }
 
                 missed = true;
+                rejoinOver = false;
                 addUpdate("You missed your turn. You can rejoin within 10 minutes.");
 
                 // The user was not here, so they need to check in again later
@@ -410,6 +423,7 @@
                 clearTimeout(rejoinTimer);
                 clearError();
                 missed = false;
+                rejoinOver = false;
                 statusIndex = 0;
                 position = 4;
                 addUpdate("You rejoined the queue at #" + position + ".");
@@ -419,7 +433,8 @@
             // 10 minutes have passed since the missed turn
             function endRejoinTime() {
                 if (missed) {
-                    document.getElementById("missed-message").innerText = "The 10 minutes to rejoin are over. Please join the queue again.";
+                    rejoinOver = true;
+                    document.getElementById("missed-message").innerText = "The 10 minutes to rejoin are over. Please click Leave Queue and join again.";
                     document.getElementById("rejoin-btn").style.display = "none";
                 }
             }

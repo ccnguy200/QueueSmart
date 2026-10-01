@@ -215,7 +215,7 @@ a.btn-secondary:hover {
    margin-top: 12px;
 }
 
-.toolbar button {
+.toolbar button, .toolbar a {
    margin-right: 8px;
    margin-bottom: 6px;
 }
