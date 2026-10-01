@@ -33,6 +33,16 @@ function showPopup(message, afterOk) {
     buttons.appendChild(okButton);
     box.appendChild(buttons);
 
+    // Keep the keyboard inside the pop-up, and Escape works like OK
+    overlay.onkeydown = function (event) {
+        if (event.key === "Tab") {
+            event.preventDefault();
+        }
+        if (event.key === "Escape") {
+            okButton.click();
+        }
+    };
+
     overlay.appendChild(box);
     document.body.appendChild(overlay);
 
@@ -78,6 +88,22 @@ function showConfirm(message, ifYes) {
     };
     buttons.appendChild(yesButton);
     box.appendChild(buttons);
+
+    // Keep the keyboard inside the pop-up, and Escape works like No
+    overlay.onkeydown = function (event) {
+        if (event.key === "Tab") {
+            // Tab only moves between No and Yes
+            event.preventDefault();
+            if (document.activeElement === noButton) {
+                yesButton.focus();
+            } else {
+                noButton.focus();
+            }
+        }
+        if (event.key === "Escape") {
+            noButton.click();
+        }
+    };
 
     overlay.appendChild(box);
     document.body.appendChild(overlay);
