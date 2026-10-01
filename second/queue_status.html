@@ -467,6 +467,11 @@
                     event.preventDefault();
                 }
 
+                // Already checked in: nothing to do
+                if (checkedIn) {
+                    return;
+                }
+
                 if (missed || statuses[statusIndex] === "Served") {
                     return showError("You cannot check in right now.");
                 }

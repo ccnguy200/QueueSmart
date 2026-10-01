@@ -195,7 +195,7 @@
                             reminder = "-";
                         }
                         actions =
-                            '<button class="btn-secondary" onclick="openReschedule(' + i + ')">Reschedule</button> ' +
+                            '<button class="btn-secondary" onclick="openReschedule(' + i + ')">Reschedule</button>' +
                             '<button class="btn-danger" onclick="cancelEvent(' + i + ')">Cancel</button>';
                     }
 
@@ -205,7 +205,7 @@
                         "<td>" + formatTime(events[i].time) + "</td>" +
                         "<td>" + events[i].title + "</td>" +
                         "<td>" + reminder + "</td>" +
-                        "<td>" + actions + "</td>";
+                        '<td class="actions">' + actions + "</td>";
                     body.appendChild(row);
                 }
 
