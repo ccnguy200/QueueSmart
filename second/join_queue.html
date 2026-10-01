@@ -7,8 +7,8 @@
         <!-- Link style sheet for uniform design and text -->
         <link rel="stylesheet" href="../styles.css">
     </head>
-    <!-- When the page is shown (also after pressing Back), updateWaitTime function called -->
-    <body onpageshow="updateWaitTime()">
+    <!-- When the page is shown (also after pressing Back), updateWaitTime and showLocationStatus functions called -->
+    <body onpageshow="updateWaitTime(); showLocationStatus()">
         <header>
             <h2>QueueSmart</h2>
             <!-- Navigation to other files -->
@@ -51,14 +51,20 @@
                 <!-- Feature 1: Select a service -->
                 <div class="form-group">
                     <label for="service">Select Service: <span style="color:red;">*</span></label>
-                    <!-- When service selected, updateWaitTime function called -->
-                    <select id="service" name="service" required onchange="updateWaitTime()">
+                    <!-- When service selected, updateWaitTime and showLocationStatus functions called -->
+                    <select id="service" name="service" required onchange="updateWaitTime(); showLocationStatus()">
                         <option value="" disabled selected>-- Please Select a Service --</option>
                         <option value="Advising">Academic Advising</option>
                         <option value="Financial Aid">Financial Aid Office</option>
                         <option value="Tutoring">Tutoring Services</option>
                     </select>
                 </div>
+
+                <!-- Location Feature: user must check their location before joining -->
+                <p>
+                    <span id="location-status"></span>
+                    <a id="location-link" href="user_location.html">Check Location</a>
+                </p>
 
                 <!-- Feature 2: View estimated wait time + price for queue -->
                 <div class="info-box">
@@ -125,6 +131,20 @@
         <!-- updateWaitTime(): will display estimated wait time for selected service by the user + fee to join -->
         <!-- Note: mock data used -->
         <script>
+            // Location Feature: user_location.html sends ?service=...&location=ok
+            const params = new URLSearchParams(window.location.search);
+            let checkedService = "";
+            if (params.get("location") === "ok") {
+                checkedService = params.get("service");
+            }
+
+            // Select the service the location was checked for
+            if (checkedService === "Advising" || checkedService === "Financial Aid" || checkedService === "Tutoring") {
+                document.getElementById("service").value = checkedService;
+            } else {
+                checkedService = "";
+            }
+
             function updateWaitTime() {
                 const serviceSelected = document.getElementById("service").value;
                 const waitTime = document.getElementById("est-wait");
@@ -148,14 +168,39 @@
                 }
             }
 
-            // checkForm(): checks the date and payment details before joining the queue
+            // showLocationStatus(): shows if the location was checked for the selected service
+            function showLocationStatus() {
+                const service = document.getElementById("service").value;
+                const status = document.getElementById("location-status");
+                const link = document.getElementById("location-link");
+
+                if (checkedService !== "" && service === checkedService) {
+                    status.innerText = "Location checked. You are close enough to join this queue.";
+                    status.style.color = "green";
+                    link.style.display = "none";
+                }
+                else {
+                    status.innerText = "Please check your location for this service before joining.";
+                    status.style.color = "#c0392b";
+                    link.style.display = "inline";
+                    link.href = "user_location.html?service=" + encodeURIComponent(service);
+                }
+            }
+
+            // checkForm(): checks the location, date and payment details before joining the queue
             function checkForm() {
+                const service = document.getElementById("service").value;
                 const queueDate = document.getElementById("queue-date").value;
                 const queueTime = document.getElementById("queue-time").value;
                 const cardName = document.getElementById("card-name").value.trim();
                 const cardNumber = document.getElementById("card-number").value;
                 const expDate = document.getElementById("exp-date").value;
                 const cvv = document.getElementById("cvv").value;
+
+                // Location must be checked for this service first
+                if (checkedService === "" || service !== checkedService) {
+                    return showError("Please check your location for this service before joining.");
+                }
 
                 // Date cannot be in the past
                 const parts = queueDate.split("-");
@@ -208,6 +253,16 @@
                 // CVV must be exactly 3 digits
                 if (cvv.length !== 3 || !isAllDigits(cvv)) {
                     return showError("CVV must be 3 digits.");
+                }
+
+                // Each person can only be in one queue at a time
+                // Note: mock data, the user is already in the Academic Advising queue
+                const currentQueue = "Advising";
+                if (service === currentQueue) {
+                    return showError("You are already in the Academic Advising queue.");
+                }
+                if (!confirm("You are already in the Academic Advising queue. Leave it and join this queue instead?")) {
+                    return false;
                 }
 
                 clearError();
