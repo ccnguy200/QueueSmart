@@ -8,7 +8,8 @@
         <link rel="stylesheet" href="../styles.css">
     </head>
     <!-- Body content -->
-    <body>
+    <!-- When the page is shown (also after pressing Back), renderHistory() rebuilds the table for the selected filter -->
+    <body onpageshow="renderHistory()">
         <header>
             <h2>QueueSmart</h2>
             <!-- Navigation to other user files -->
