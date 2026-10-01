@@ -24,8 +24,8 @@
                     <!-- Link to queue management screen -->
                     <li><a href="queue_management.html">Queue Management</a></li>
 
-                    <!-- Link to the lobby "Now Serving" screen -->
-                    <li><a href="now_serving.html">Now Serving</a></li>
+                    <!-- Link to the lobby "Now Serving" screen (opens in a new tab for the lobby TV) -->
+                    <li><a href="now_serving.html" target="_blank">Now Serving</a></li>
 
                     <!-- Link to calendar screen -->
                     <li><a href="admin_calendar.html">View Calendar</a></li>
@@ -128,11 +128,11 @@
                 "Tutoring": []
             };
 
-            // Number of people served today, per service
-            let servedToday = { "Advising": 0, "Financial Aid": 0, "Tutoring": 0 };
+            // Number of people served today, per service (adds up to the Admin Dashboard numbers)
+            let servedToday = { "Advising": 10, "Financial Aid": 8, "Tutoring": 0 };
 
             // Number of people who did not show up today, per service
-            let noShowsToday = { "Advising": 0, "Financial Aid": 0, "Tutoring": 0 };
+            let noShowsToday = { "Advising": 1, "Financial Aid": 1, "Tutoring": 0 };
 
             // Show the queue for the selected service
             function loadQueue() {
