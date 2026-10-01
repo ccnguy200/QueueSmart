@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <!-- Set title for browser tab -->
+        <title>Location Check</title>
+
+        <!-- Link style sheet for uniform design and text -->
+        <link rel="stylesheet" href="../styles.css">
+
+        <!-- Places and distance function for the location feature -->
+        <script src="../location.js"></script>
+    </head>
+    <!-- Body content -->
+    <!-- When the page is shown (also after pressing Back), showPlace() shows the selected building again -->
+    <body onpageshow="showPlace()">
+        <header>
+            <h2>QueueSmart</h2>
+            <!-- Navigation to other user files -->
+            <nav>
+                <ul>
+                    <!-- Link to user dashboard screen -->
+                    <li><a href="user_dashboard.html">User Dashboard</a></li>
+
+                    <!-- Link to location screen -->
+                    <li><a href="user_location.html">Location</a></li>
+
+                    <!-- Link to join queue screen -->
+                    <li><a href="join_queue.html">Join Queue</a></li>
+
+                    <!-- Link to queue status screen -->
+                    <li><a href="queue_status.html">Queue Status</a></li>
+
+                    <!-- Link to history screen -->
+                    <li><a href="history.html">History</a></li>
+
+                    <!-- Link to user calendar screen -->
+                    <li><a href="user_calendar.html">View Calendar</a></li>
+
+                    <!-- Link to login screen when user logs out -->
+                    <li><a href="login.html">Logout</a></li>
+                </ul>
+            </nav>
+        </header>
+
+        <!-- Location Screen -->
+        <!-- Note: Mock data used -->
+        <h1>Check Your Location</h1>
+        <p>You must be within <strong>0.5 miles</strong> of the service location before you can join its queue.</p>
+
+        <!-- Feature 1: Pick a service and give your location -->
+        <div class="card">
+            <!-- onsubmit calls checkLocation() -->
+            <form id="location-form" onsubmit="checkLocation(event)" novalidate>
+
+                <!-- Service: required, each service is in a different building -->
+                <div class="form-group">
+                    <label for="service">Select Service: <span class="required">*</span></label>
+                    <!-- When a service is selected, showPlace() shows its building -->
+                    <select id="service" name="service" required onchange="showPlace()">
+                        <option value="" disabled selected>-- Please Select a Service --</option>
+                        <option value="Advising">Academic Advising</option>
+                        <option value="Financial Aid">Financial Aid Office</option>
+                        <option value="Tutoring">Tutoring Services</option>
+                    </select>
+                    <p class="hint">Location: <span id="place-name">Select a service above</span></p>
+                </div>
+
+                <h3>Your Location</h3>
+
+                <!-- Option 1: let the browser find the location -->
+                <p>
+                    <button type="button" class="btn-secondary" onclick="useMyLocation()">Use My Location</button>
+                </p>
+                <p class="hint">Or type your location in below.</p>
+
+                <!-- Option 2: Latitude: required, number between -90 and 90 -->
+                <div class="form-group">
+                    <label for="latitude">Latitude: <span class="required">*</span></label>
+                    <input type="number" id="latitude" name="latitude" min="-90" max="90" step="any" placeholder="ex. 29.7213" required>
+                    <p class="hint">Required, between -90 and 90.</p>
+                </div>
+
+                <!-- Longitude: required, number between -180 and 180 -->
+                <div class="form-group">
+                    <label for="longitude">Longitude: <span class="required">*</span></label>
+                    <input type="number" id="longitude" name="longitude" min="-180" max="180" step="any" placeholder="ex. -95.3425" required>
+                    <p class="hint">Required, between -180 and 180.</p>
+                </div>
+
+                <!-- Form error message -->
+                <p id="form-error" style="color:#c0392b; display:none;"></p>
+
+                <!-- Check the distance -->
+                <button type="submit" class="btn">Check Distance</button>
+            </form>
+        </div>
+
+        <!-- Feature 2: Distance result (hidden until the user checks) -->
+        <div class="card" id="result-card" style="display:none;">
+            <h3>Result</h3>
+            <p><strong>Distance:</strong> <span id="distance"></span></p>
+            <p><strong>Allowed:</strong> 0.5 miles</p>
+            <p><strong>Status:</strong> <span id="status-badge" class="badge"></span></p>
+            <p id="result-message"></p>
+
+            <!-- Only works when the user is close enough -->
+            <button type="button" class="btn" id="join-btn" onclick="goToJoinQueue()" disabled>Join Queue</button>
+        </div>
+
+        <!-- Note: Mock Data used, no backend -->
+        <script>
+            // If we came from another page with a service picked, select it
+            const params = new URLSearchParams(window.location.search);
+            if (params.get("service") !== null) {
+                document.getElementById("service").value = params.get("service");
+            }
+
+            // Show the building for the selected service
+            function showPlace() {
+                const service = document.getElementById("service").value;
+                const placeName = document.getElementById("place-name");
+
+                if (service === "") {
+                    placeName.innerText = "Select a service above";
+                } else {
+                    placeName.innerText = places[service].name;
+                }
+
+                // A different service means the old result is no longer correct
+                document.getElementById("result-card").style.display = "none";
+            }
+
+            // Ask the browser for the user's location
+            function useMyLocation() {
+                if (!navigator.geolocation) {
+                    return showError("Your browser cannot share your location. Please type it in below.");
+                }
+                clearError();
+                navigator.geolocation.getCurrentPosition(locationFound, locationError);
+            }
+
+            // The browser found the location: fill in the boxes and check it
+            function locationFound(position) {
+                document.getElementById("latitude").value = position.coords.latitude.toFixed(4);
+                document.getElementById("longitude").value = position.coords.longitude.toFixed(4);
+                checkLocation();
+            }
+
+            // The browser could not get the location
+            function locationError() {
+                showError("Could not get your location. Please type it in below.");
+            }
+
+            // Validate the form and show how far away the user is
+            function checkLocation(event) {
+                // event is empty when called from locationFound()
+                if (event) {
+                    event.preventDefault();
+                }
+
+                const service = document.getElementById("service").value;
+                const latText = document.getElementById("latitude").value;
+                const lngText = document.getElementById("longitude").value;
+
+                // Client-side validation
+                if (service === "") {
+                    return showError("Please select a service.");
+                }
+                const coordinateError = checkCoordinates(latText, lngText);
+                if (coordinateError !== "") {
+                    return showError(coordinateError);
+                }
+
+                clearError();
+
+                // Work out the distance to the building
+                const place = places[service];
+                const miles = getDistance(Number(latText), Number(lngText), place.latitude, place.longitude);
+
+                const badge = document.getElementById("status-badge");
+                const message = document.getElementById("result-message");
+                const joinButton = document.getElementById("join-btn");
+
+                document.getElementById("distance").innerText = miles.toFixed(2) + " miles from " + place.name;
+
+                // Close enough: allow joining the queue
+                if (miles <= allowedMiles) {
+                    badge.innerText = "Within range";
+                    badge.className = "badge badge-open";
+                    message.innerText = "You are close enough to join this queue.";
+                    joinButton.disabled = false;
+                } else {
+                    badge.innerText = "Too far";
+                    badge.className = "badge badge-closed";
+                    message.innerText = "Please move closer to " + place.name + " and check again.";
+                    joinButton.disabled = true;
+                }
+
+                document.getElementById("result-card").style.display = "block";
+            }
+
+            // Go to Join Queue and tell it the location was checked for this service
+            function goToJoinQueue() {
+                const service = document.getElementById("service").value;
+                window.location.href = "join_queue.html?service=" + encodeURIComponent(service) + "&location=ok";
+            }
+
+            // Show a validation error
+            function showError(message) {
+                const error = document.getElementById("form-error");
+                error.innerText = message;
+                error.style.display = "block";
+                return false;
+            }
+
+            // Hide the validation error
+            function clearError() {
+                const error = document.getElementById("form-error");
+                error.innerText = "";
+                error.style.display = "none";
+            }
+        </script>
+    </body>
+</html>
