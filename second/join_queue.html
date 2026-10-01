@@ -7,7 +7,8 @@
         <!-- Link style sheet for uniform design and text -->
         <link rel="stylesheet" href="../styles.css">
     </head>
-    <body>
+    <!-- When the page is shown (also after pressing Back), updateWaitTime function called -->
+    <body onpageshow="updateWaitTime()">
         <header>
             <h2>QueueSmart</h2>
             <!-- Navigation to other files -->
@@ -35,13 +36,14 @@
         </header>
 
         <!-- Join Queue Screen -->
-        <!-- Notr: Mock data used -->
+        <!-- Note: Mock data used -->
         <h1>Join a Queue</h1>
 
         <!-- Features: select service, view estimated wait time, and join or leave a queue -->
         <div class="card">
             <!-- Link to queue.html when after joining a queue -->
-            <form action="queue_status.html" method="GET">
+            <!-- When submitted, checkForm function called -->
+            <form action="queue_status.html" method="GET" onsubmit="return checkForm()">
 
                 <!-- Feature 1: Select a service -->
                 <div class="form-group">
@@ -57,7 +59,7 @@
 
                 <!-- Feature 2: View estimated wait time + price for queue -->
                 <div class="info-box">
-                    <p style="margin: 0;"><stong>Estimated Wait Time:</stong> <span id="est-wait">Select a service above</span></p>
+                    <p style="margin: 0;"><strong>Estimated Wait Time:</strong> <span id="est-wait">Select a service above</span></p>
                     <p style="margin: 5px 0 0 0;"><strong>Fee to Join Queue:</strong> <span id="service-fee">$0.00</span></p>
                 </div>
 
@@ -77,34 +79,38 @@
 
                 <!-- Payment Feature: User will input CC information to pay for for service -->
                 <h3>Payment Details</h3>
+                <!-- Note: card inputs have no name so card info is not shown in the URL -->
                 <!-- User inputs card name first -->
                 <div class="form-group">
                     <label for="card-name">Cardholder Name: <span style="color:red;">*</span></label>
-                    <input type="text" id="card-name" name="card-name" placeholder="ex. Mary Jane" required>
+                    <input type="text" id="card-name" placeholder="ex. Mary Jane" maxlength="50" required>
                 </div>
                 
                 <!-- User inputs card num next -->
                 <div class="form-group">
                     <label for="card-number">Card Number: <span style="color:red;">*</span></label>
-                    <input type="text" id="card-number" name="card-number" placeholder="ex. 1234 5678 9876 5432" maxlength="16" required>
+                    <input type="text" id="card-number" placeholder="ex. 1234567898765432" maxlength="16" required>
                 </div>
 
                 <!-- User inputs exp date next -->
                 <div class="form-group">
                     <label for="exp-date">Expiration Date: <span style="color:red;">*</span></label>
-                    <input type="text" id="exp-date" name="exp-date" placeholder="ex. MM/YY" maxlength="5" required>
+                    <input type="text" id="exp-date" placeholder="ex. MM/YY" maxlength="5" required>
                 </div>
 
                 <!-- User inputs cvv num next -->
                 <div class="form-group">
                     <label for="cvv">CVV: <span style="color:red;">*</span></label>
-                        <input type="password" id="cvv" name="cvv" placeholder="ex. 123" maxlength="3" required>
+                        <input type="password" id="cvv" placeholder="ex. 123" maxlength="3" required>
                 </div>
+
+                <!-- Form error message -->
+                <p id="form-error" style="color:#c0392b; display:none;"></p>
 
                 <!-- Feature 3: Join or leave a queue -->
                 <div class="form-group">
-                    <!-- Option 1: Join queue -->
-                    <button type="submit" class="btn-submit">Confirm and Join Queue</button>
+                    <!-- Option 1: Join queue (old error message is hidden first) -->
+                    <button type="submit" class="btn" onclick="clearError()">Confirm and Join Queue</button>
 
                     <!-- Option 2: Leave queue -->
                     <a href="user_dashboard.html" class="btn-danger">Leave Queue</a>
@@ -127,16 +133,107 @@
                 }
                 else if (serviceSelected === "Financial Aid") {
                     waitTime.innerText = "15 minutes";
-                    queueFee.innerText = "15.00";
+                    queueFee.innerText = "$15.00";
                 }
                 else if (serviceSelected === "Tutoring") {
                     waitTime.innerText = "5 minutes";
-                    queueFee.innerText = "10.00";
+                    queueFee.innerText = "$10.00";
                 }
                 else {
-                    waitTime.innerText = "Please select a service.";
+                    waitTime.innerText = "Select a service above";
                     queueFee.innerText = "$0.00";
                 }
+            }
+
+            // checkForm(): checks the date and payment details before joining the queue
+            function checkForm() {
+                const queueDate = document.getElementById("queue-date").value;
+                const queueTime = document.getElementById("queue-time").value;
+                const cardName = document.getElementById("card-name").value.trim();
+                const cardNumber = document.getElementById("card-number").value;
+                const expDate = document.getElementById("exp-date").value;
+                const cvv = document.getElementById("cvv").value;
+
+                // Date cannot be in the past
+                const parts = queueDate.split("-");
+                const chosenDate = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+                const now = new Date();
+                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                if (chosenDate < today) {
+                    return showError("Please select today or a future date.");
+                }
+
+                // If the date is today, the time slot cannot be earlier than now
+                if (chosenDate.getTime() === today.getTime()) {
+                    const timeParts = queueTime.split(":");
+                    const chosenMinutes = Number(timeParts[0]) * 60 + Number(timeParts[1]);
+                    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+                    if (chosenMinutes < nowMinutes) {
+                        return showError("Please select a time slot later than now.");
+                    }
+                }
+
+                // Cardholder name must be at least 2 characters
+                if (cardName.length < 2) {
+                    return showError("Cardholder Name must be at least 2 characters.");
+                }
+
+                // Card number must be exactly 16 digits
+                if (cardNumber.length !== 16 || !isAllDigits(cardNumber)) {
+                    return showError("Card Number must be 16 digits (numbers only).");
+                }
+
+                // Expiration date must look like MM/YY
+                const month = expDate.substring(0, 2);
+                const year = expDate.substring(3, 5);
+                if (expDate.length !== 5 || expDate[2] !== "/" || !isAllDigits(month) || !isAllDigits(year)) {
+                    return showError("Expiration Date must be in MM/YY format.");
+                }
+
+                // Month must be between 01 and 12
+                if (Number(month) < 1 || Number(month) > 12) {
+                    return showError("Expiration month must be between 01 and 12.");
+                }
+
+                // Card cannot be expired
+                const thisMonth = today.getMonth() + 1;
+                const thisYear = today.getFullYear() - 2000;
+                if (Number(year) < thisYear || (Number(year) === thisYear && Number(month) < thisMonth)) {
+                    return showError("This card has expired.");
+                }
+
+                // CVV must be exactly 3 digits
+                if (cvv.length !== 3 || !isAllDigits(cvv)) {
+                    return showError("CVV must be 3 digits.");
+                }
+
+                clearError();
+                return true;
+            }
+
+            // isAllDigits(): returns true if the text only has the numbers 0-9
+            function isAllDigits(text) {
+                for (let i = 0; i < text.length; i++) {
+                    if (text[i] < "0" || text[i] > "9") {
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+            // showError(): shows a validation error
+            function showError(message) {
+                const error = document.getElementById("form-error");
+                error.innerText = message;
+                error.style.display = "block";
+                return false;
+            }
+
+            // clearError(): hides the validation error
+            function clearError() {
+                const error = document.getElementById("form-error");
+                error.innerText = "";
+                error.style.display = "none";
             }
         </script>
 

@@ -4,7 +4,8 @@
         <title>Register</title> 
         <link rel="stylesheet" href="../styles.css">      
     </head>
-    <body>
+    <!-- When the page is shown (also after pressing Back), adminRegister function called -->
+    <body onpageshow="adminRegister()">
         <div class="feature">
             <h1>Register</h1>
             <script src="../script.js" defer></script>
@@ -45,7 +46,7 @@
                     <button class="btn" type="submit">Register</button>
                 </p>
             </form>
-            <a href="../index.html">Back to Home</a>
+            <p><a href="../index.html">Back to Home</a></p>
         </div>
 
         <p><button class="btn-secondary" onclick="resetData()">Reset All Users</button></p>

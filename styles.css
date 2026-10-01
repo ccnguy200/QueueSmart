@@ -24,11 +24,12 @@ nav ul {
 }
 
 nav li {
-   display: inline;
+   display: inline-block;
    margin: 8px;
 }
 
 nav li a {
+   display: inline-block;
    text-decoration: none;  
    padding: 13px 25px;
    background-color: lightblue;  
@@ -50,6 +51,7 @@ nav li a:hover {
    margin: 10px 0;
    display: flex;
    flex-direction: column;
+   overflow-x: auto;   /* wide tables scroll inside the box instead of off the page */
 }
 
 .feature-header {
@@ -59,10 +61,12 @@ nav li a:hover {
    margin: 10px 0;
    display: flex;
    flex-direction: row;
+   flex-wrap: wrap;   /* on narrow screens the title moves under the logo */
 }
 
 .feature-right {
    margin-left: 50px;
+   overflow-wrap: anywhere;   /* a long word can break instead of going outside the box */
 }
 
 /* Cards (white containers used across the screens) */
@@ -71,6 +75,7 @@ nav li a:hover {
    background: white;
    padding: 15px 20px;
    margin: 10px 0;
+   overflow-x: auto;   /* wide tables scroll inside the card instead of off the page */
 }
 
 /* Tables */
@@ -172,6 +177,13 @@ textarea {
    background-color: #8b1a1a;
 }
 
+/* Disabled buttons look grey and cannot be clicked */
+.btn:disabled, .btn-secondary:disabled, .btn-danger:disabled {
+   background-color: lightgray;
+   color: gray;
+   cursor: not-allowed;
+}
+
 /* Keep button links readable (a:link / a:visited would otherwise override the colour) */
 a.btn:link, a.btn:visited {
    color: white;
@@ -182,6 +194,15 @@ a.btn-secondary:link, a.btn-secondary:visited {
 }
 
 a.btn-danger:link, a.btn-danger:visited {
+   color: white;
+}
+
+/* Keep the hover colour on button links too */
+a.btn:hover {
+   color: darkblue;
+}
+
+a.btn-secondary:hover {
    color: white;
 }
 

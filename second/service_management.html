@@ -8,7 +8,8 @@
         <link rel="stylesheet" href="../styles.css">
     </head>
     <!-- Body content -->
-    <body>
+    <!-- When the page is shown (also after pressing Back), resetForm() puts the form back in create mode -->
+    <body onpageshow="resetForm()">
         <header>
             <h2>QueueSmart &mdash; Admin</h2>
             <!-- Navigation to other admin files -->
@@ -179,8 +180,15 @@
                 if (name.length > 100) {
                     return showError("Service Name must be 100 characters or fewer.");
                 }
+                // < and > are not allowed because the table would read them as HTML
+                if (name.includes("<") || name.includes(">")) {
+                    return showError("Service Name cannot contain < or >.");
+                }
                 if (description === "") {
                     return showError("Description is required.");
+                }
+                if (description.includes("<") || description.includes(">")) {
+                    return showError("Description cannot contain < or >.");
                 }
                 if (durationText === "" || isNaN(duration) || duration < 1 || duration > 480) {
                     return showError("Expected Duration must be between 1 and 480 minutes.");

@@ -98,10 +98,10 @@
             // Index into the statuses array
             let statusIndex = 0;
 
-            // Mock status updates: [message, time]
+            // Mock status updates: [message, time], newest first
             let updates = [
-                ["You joined the Academic Advising queue.", "10:02 AM"],
-                ["Your position is now #3.", "10:05 AM"]
+                ["Your position is now #3.", "10:05 AM"],
+                ["You joined the Academic Advising queue.", "10:02 AM"]
             ];
 
             // Return the badge class for a status
@@ -120,7 +120,12 @@
                 const status = statuses[statusIndex];
 
                 document.getElementById("position").innerText = "#" + position;
-                document.getElementById("wait-time").innerText = (position * minutesPerPerson) + " minutes";
+                // Wait time is 0 once the user has been served
+                if (status === "Served") {
+                    document.getElementById("wait-time").innerText = "0 minutes";
+                } else {
+                    document.getElementById("wait-time").innerText = (position * minutesPerPerson) + " minutes";
+                }
 
                 const badge = document.getElementById("status-badge");
                 badge.innerText = status;
@@ -168,6 +173,9 @@
 
                     if (hour >= 12) {
                         suffix = "PM";
+                    }
+                    if (hour === 0) {
+                        hour = 12;
                     }
                     if (hour > 12) {
                         hour = hour - 12;

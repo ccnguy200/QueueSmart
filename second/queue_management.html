@@ -8,7 +8,8 @@
         <link rel="stylesheet" href="../styles.css">
     </head>
     <!-- Body content -->
-    <body>
+    <!-- When the page is shown (also after pressing Back), loadQueue() shows the selected queue again -->
+    <body onpageshow="loadQueue()">
         <header>
             <h2>QueueSmart &mdash; Admin</h2>
             <!-- Navigation to other admin files -->
