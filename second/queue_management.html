@@ -6,6 +6,9 @@
 
         <!-- Link style sheet for uniform design and text -->
         <link rel="stylesheet" href="../styles.css">
+
+        <!-- Pop-up messages that match the site style -->
+        <script src="../popup.js"></script>
     </head>
     <!-- Body content -->
     <!-- When the page is shown (also after pressing Back), loadQueue() shows the selected queue again -->
@@ -23,6 +26,9 @@
 
                     <!-- Link to queue management screen -->
                     <li><a href="queue_management.html">Queue Management</a></li>
+
+                    <!-- Link to the lobby "Now Serving" screen (opens in a new tab for the lobby TV) -->
+                    <li><a href="now_serving.html" target="_blank">Now Serving</a></li>
 
                     <!-- Link to calendar screen -->
                     <li><a href="admin_calendar.html">View Calendar</a></li>
@@ -64,6 +70,10 @@
                     <span>Served Today</span>
                     <p class="number" id="stat-served">0</p>
                 </div>
+                <div class="stat">
+                    <span>No-shows Today</span>
+                    <p class="number" id="stat-noshow">0</p>
+                </div>
             </div>
         </div>
 
@@ -77,6 +87,7 @@
                         <th>Position</th>
                         <th>Name</th>
                         <th>Status</th>
+                        <th>Checked In</th>
                         <th>Estimated Wait</th>
                         <th>Actions</th>
                     </tr>
@@ -105,22 +116,26 @@
             };
 
             // Mock queues for each service
+            // arrived: true when the person checked in at the building (Location feature)
             const queues = {
                 "Advising": [
-                    { name: "Maria Lopez" },
-                    { name: "David Kim" },
-                    { name: "Aisha Rahman" },
-                    { name: "Tom Becker" }
+                    { name: "Maria Lopez", arrived: true },
+                    { name: "David Kim", arrived: false },
+                    { name: "Aisha Rahman", arrived: true },
+                    { name: "Tom Becker", arrived: false }
                 ],
                 "Financial Aid": [
-                    { name: "Grace Chen" },
-                    { name: "Noah Patel" }
+                    { name: "Grace Chen", arrived: false },
+                    { name: "Noah Patel", arrived: true }
                 ],
                 "Tutoring": []
             };
 
-            // Number of people served today, per service
-            let servedToday = { "Advising": 0, "Financial Aid": 0, "Tutoring": 0 };
+            // Number of people served today, per service (adds up to the Admin Dashboard numbers)
+            let servedToday = { "Advising": 10, "Financial Aid": 8, "Tutoring": 0 };
+
+            // Number of people who did not show up today, per service
+            let noShowsToday = { "Advising": 1, "Financial Aid": 1, "Tutoring": 0 };
 
             // Show the queue for the selected service
             function loadQueue() {
@@ -162,6 +177,20 @@
                         status = '<span class="badge badge-ready">Almost Ready</span>';
                     }
 
+                    // Checked in at the building or not yet
+                    let arrived = '<span class="badge badge-waiting">Not here yet</span>';
+                    if (person.arrived === true) {
+                        arrived = '<span class="badge badge-served">Arrived</span>';
+                    }
+
+                    // The person at the front can be called again or marked as a no-show
+                    let frontButtons = "";
+                    if (i === 0) {
+                        frontButtons =
+                            '<button class="btn-secondary" onclick="callAgain()">Call Again</button>' +
+                            '<button class="btn-danger" onclick="markNoShow()">No-show</button>';
+                    }
+
                     // Disable the arrows at the ends of the queue
                     let upDisabled = "";
                     if (i === 0) {
@@ -177,11 +206,13 @@
                         "<td>" + position + "</td>" +
                         "<td>" + person.name + "</td>" +
                         "<td>" + status + "</td>" +
+                        "<td>" + arrived + "</td>" +
                         "<td>" + wait + " min</td>" +
                         '<td class="actions">' +
                             '<button class="btn-secondary" onclick="moveUp(' + i + ')"' + upDisabled + ">&uarr;</button>" +
                             '<button class="btn-secondary" onclick="moveDown(' + i + ')"' + downDisabled + ">&darr;</button>" +
                             '<button class="btn-danger" onclick="removeUser(' + i + ')">Remove</button>' +
+                            frontButtons +
                         "</td>";
 
                     body.appendChild(row);
@@ -203,6 +234,7 @@
                 document.getElementById("stat-length").innerText = queue.length;
                 document.getElementById("stat-wait").innerText = lastWait + " min";
                 document.getElementById("stat-served").innerText = servedToday[service];
+                document.getElementById("stat-noshow").innerText = noShowsToday[service];
             }
 
             // Move a person up in the queue
@@ -236,10 +268,11 @@
                 const service = document.getElementById("service-select").value;
                 const queue = queues[service];
 
-                if (confirm("Remove " + queue[index].name + " from the queue?")) {
+                // Only remove after the admin clicks Yes
+                showConfirm("Remove " + queue[index].name + " from the queue?", function () {
                     queue.splice(index, 1);
                     renderQueue(service);
-                }
+                });
             }
 
             // Serve the next person (UI simulation)
@@ -248,15 +281,50 @@
                 const queue = queues[service];
 
                 if (queue.length === 0) {
-                    alert("This queue is empty.");
+                    showPopup("This queue is empty.");
                     return;
                 }
 
+                // Warn if the next person has not checked in yet
+                if (queue[0].arrived === false) {
+                    showConfirm(queue[0].name + " has not checked in yet. Serve anyway?", function () {
+                        serveFront(service);
+                    });
+                    return;
+                }
+
+                serveFront(service);
+            }
+
+            // Serve the person at the front of a queue
+            function serveFront(service) {
+                const queue = queues[service];
                 const served = queue.shift();
                 servedToday[service] = servedToday[service] + 1;
-                alert(served.name + " has been served.");
+                showPopup(served.name + " has been served.");
 
                 renderQueue(service);
+            }
+
+            // Call the person at the front again (UI simulation)
+            function callAgain() {
+                const service = document.getElementById("service-select").value;
+                const queue = queues[service];
+
+                showPopup(queue[0].name + " has been called again.");
+            }
+
+            // The person at the front did not show up: remove them and count a no-show
+            function markNoShow() {
+                const service = document.getElementById("service-select").value;
+                const queue = queues[service];
+
+                // Only remove after the admin clicks Yes
+                showConfirm("Mark " + queue[0].name + " as a no-show? They will be removed from the queue.", function () {
+                    queue.shift();
+                    noShowsToday[service] = noShowsToday[service] + 1;
+                    renderQueue(service);
+                });
             }
 
             // Reset the mock data (useful for demos)

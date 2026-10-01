@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <!-- Set title for browser tab -->
+        <title>Now Serving</title>
+
+        <!-- Link style sheet for uniform design and text -->
+        <link rel="stylesheet" href="../styles.css">
+    </head>
+    <!-- Body content -->
+    <body>
+        <header>
+            <h2>QueueSmart</h2>
+            <!-- This screen is shown on a TV in the lobby, so it only links back home -->
+            <nav>
+                <ul>
+                    <!-- Link to home screen -->
+                    <li><a href="../index.html">Home</a></li>
+                </ul>
+            </nav>
+        </header>
+
+        <!-- Now Serving Screen -->
+        <!-- Note: Mock Data used -->
+        <h1>Now Serving</h1>
+        <p>Only first names and last initials are shown. Last updated: <span id="updated-time"></span></p>
+
+        <!-- One card per service, added by renderDisplay() -->
+        <div id="display"></div>
+
+        <!-- Note: Mock Data used, no backend -->
+        <script>
+            // Mock queues (same people as Queue Management)
+            // desk: where the person being served should go
+            const services = [
+                {
+                    name: "Academic Advising",
+                    desk: "Desk 1",
+                    open: true,
+                    people: ["Maria Lopez", "David Kim", "Aisha Rahman", "Tom Becker"]
+                },
+                {
+                    name: "Financial Aid Office",
+                    desk: "Desk 2",
+                    open: true,
+                    people: ["Grace Chen", "Noah Patel"]
+                },
+                {
+                    name: "Tutoring Services",
+                    desk: "Room 105",
+                    open: false,
+                    people: []
+                }
+            ];
+
+            // Turn "Maria Lopez" into "Maria L." to keep names private
+            function shortName(fullName) {
+                const parts = fullName.split(" ");
+                return parts[0] + " " + parts[parts.length - 1].charAt(0) + ".";
+            }
+
+            // Build one card for each service
+            function renderDisplay() {
+                const display = document.getElementById("display");
+                display.innerHTML = "";
+
+                for (let i = 0; i < services.length; i++) {
+                    const service = services[i];
+                    const card = document.createElement("div");
+                    card.className = "card";
+
+                    // Closed queue
+                    if (service.open === false) {
+                        card.innerHTML =
+                            "<h3>" + service.name + "</h3>" +
+                            '<p><span class="badge badge-closed">Closed</span></p>';
+                    }
+                    // Open but nobody waiting
+                    else if (service.people.length === 0) {
+                        card.innerHTML =
+                            "<h3>" + service.name + "</h3>" +
+                            '<p class="empty">No one is waiting.</p>';
+                    }
+                    else {
+                        // The first person is being served, the next three are up next
+                        let upNext = "";
+                        for (let j = 1; j < service.people.length && j <= 3; j++) {
+                            upNext = upNext + "<li>" + shortName(service.people[j]) + "</li>";
+                        }
+                        if (upNext === "") {
+                            upNext = "<li>No one else is waiting.</li>";
+                        }
+
+                        card.innerHTML =
+                            "<h3>" + service.name + "</h3>" +
+                            '<div class="current">' +
+                                '<div class="stat">' +
+                                    '<div class="label">Now Serving</div>' +
+                                    '<div class="value">' + shortName(service.people[0]) + "</div>" +
+                                "</div>" +
+                                '<div class="stat">' +
+                                    '<div class="label">Please Go To</div>' +
+                                    '<div class="value">' + service.desk + "</div>" +
+                                "</div>" +
+                            "</div>" +
+                            "<p><strong>Up Next:</strong></p>" +
+                            "<ul>" + upNext + "</ul>" +
+                            '<button class="btn-secondary" onclick="callNext(' + i + ')">Call Next (demo)</button>';
+                    }
+
+                    display.appendChild(card);
+                }
+
+                // Show the time of the last update, e.g. 2:30 PM
+                const now = new Date();
+                let hour = now.getHours();
+                let minute = now.getMinutes();
+                let suffix = "AM";
+
+                if (hour >= 12) {
+                    suffix = "PM";
+                }
+                if (hour === 0) {
+                    hour = 12;
+                }
+                if (hour > 12) {
+                    hour = hour - 12;
+                }
+                if (minute < 10) {
+                    minute = "0" + minute;
+                }
+                document.getElementById("updated-time").innerText = hour + ":" + minute + " " + suffix;
+            }
+
+            // The person being served is done, call the next one (UI simulation)
+            function callNext(index) {
+                services[index].people.shift();
+                renderDisplay();
+            }
+
+            renderDisplay();
+        </script>
+    </body>
+</html>

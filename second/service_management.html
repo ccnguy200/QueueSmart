@@ -6,6 +6,9 @@
 
         <!-- Link style sheet for uniform design and text -->
         <link rel="stylesheet" href="../styles.css">
+
+        <!-- Pop-up messages that match the site style -->
+        <script src="../popup.js"></script>
     </head>
     <!-- Body content -->
     <!-- When the page is shown (also after pressing Back), resetForm() puts the form back in create mode -->
@@ -23,6 +26,9 @@
 
                     <!-- Link to queue management screen -->
                     <li><a href="queue_management.html">Queue Management</a></li>
+
+                    <!-- Link to the lobby "Now Serving" screen (opens in a new tab for the lobby TV) -->
+                    <li><a href="now_serving.html" target="_blank">Now Serving</a></li>
 
                     <!-- Link to calendar screen -->
                     <li><a href="admin_calendar.html">View Calendar</a></li>
@@ -64,6 +70,13 @@
                     <p class="hint">Required, between 1 and 480 minutes.</p>
                 </div>
 
+                <!-- Max Queue Size: required, whole number from 1 to 200 -->
+                <div class="form-group">
+                    <label for="service-max">Max Queue Size (people): <span class="required">*</span></label>
+                    <input type="number" id="service-max" name="service-max" min="1" max="200" step="1" required>
+                    <p class="hint">Required, whole number between 1 and 200. The queue is full at this size.</p>
+                </div>
+
                 <!-- Priority Level: required, low / medium / high -->
                 <div class="form-group">
                     <label for="service-priority">Priority Level: <span class="required">*</span></label>
@@ -95,6 +108,7 @@
                         <th>Service Name</th>
                         <th>Description</th>
                         <th>Duration</th>
+                        <th>Max Size</th>
                         <th>Priority</th>
                         <th>Actions</th>
                     </tr>
@@ -113,6 +127,7 @@
                     name: "Academic Advising",
                     description: "Talk to an advisor about course selection.",
                     duration: 30,
+                    maxSize: 10,
                     priority: "High"
                 },
                 {
@@ -120,6 +135,7 @@
                     name: "Financial Aid Office",
                     description: "Help with FAFSA, scholarships, and aid questions.",
                     duration: 15,
+                    maxSize: 8,
                     priority: "Medium"
                 },
                 {
@@ -127,6 +143,7 @@
                     name: "Tutoring Services",
                     description: "One-on-one tutoring for selected courses.",
                     duration: 5,
+                    maxSize: 5,
                     priority: "Low"
                 }
             ];
@@ -147,6 +164,7 @@
                         "<td>" + service.name + "</td>" +
                         "<td>" + service.description + "</td>" +
                         "<td>" + service.duration + " min</td>" +
+                        "<td>" + service.maxSize + " people</td>" +
                         "<td>" + priorityBadge(service.priority) + "</td>" +
                         '<td class="actions">' +
                             '<button class="btn-secondary" onclick="editService(' + service.id + ')">Edit</button>' +
@@ -171,6 +189,8 @@
                 const description = document.getElementById("service-desc").value.trim();
                 const durationText = document.getElementById("service-duration").value;
                 const duration = Number(durationText);
+                const maxText = document.getElementById("service-max").value;
+                const maxSize = Number(maxText);
                 const priority = document.getElementById("service-priority").value;
 
                 // Client-side validation
@@ -193,6 +213,10 @@
                 if (durationText === "" || isNaN(duration) || duration < 1 || duration > 480) {
                     return showError("Expected Duration must be between 1 and 480 minutes.");
                 }
+                // Max Queue Size must be a whole number
+                if (maxText === "" || isNaN(maxSize) || maxSize < 1 || maxSize > 200 || Math.floor(maxSize) !== maxSize) {
+                    return showError("Max Queue Size must be a whole number between 1 and 200.");
+                }
                 if (priority === "") {
                     return showError("Please select a Priority Level.");
                 }
@@ -213,6 +237,7 @@
                         name: name,
                         description: description,
                         duration: duration,
+                        maxSize: maxSize,
                         priority: priority
                     });
                 } else {
@@ -222,6 +247,7 @@
                             services[i].name = name;
                             services[i].description = description;
                             services[i].duration = duration;
+                            services[i].maxSize = maxSize;
                             services[i].priority = priority;
                         }
                     }
@@ -248,6 +274,7 @@
                 document.getElementById("service-name").value = service.name;
                 document.getElementById("service-desc").value = service.description;
                 document.getElementById("service-duration").value = service.duration;
+                document.getElementById("service-max").value = service.maxSize;
                 document.getElementById("service-priority").value = service.priority;
 
                 editingId = id;
@@ -260,10 +287,14 @@
 
             // Remove a service after confirmation
             function deleteService(id) {
-                if (!confirm("Delete this service? This cannot be undone.")) {
-                    return;
-                }
+                // Only delete after the admin clicks Yes
+                showConfirm("Delete this service? This cannot be undone.", function () {
+                    removeService(id);
+                });
+            }
 
+            // Take a service out of the list
+            function removeService(id) {
                 const remaining = [];
                 for (let i = 0; i < services.length; i++) {
                     if (services[i].id !== id) {

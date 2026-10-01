@@ -8,16 +8,16 @@ function login() {
     let username = document.getElementById("email").value.toLowerCase();
     let password = document.getElementById("secret").value;
     if(users[username] && (users[username].password === password)) {
-        alert("Login Successful");
+        // Go to the right dashboard after the user clicks OK
         if(users[username].role == "admin"){
-            window.location.href = "admin_dashboard.html";
+            showPopup("Login Successful", goToAdminDashboard);
         }
         else{
-            window.location.href = "user_dashboard.html";
+            showPopup("Login Successful", goToUserDashboard);
         }
         return false;
     }
-    alert("Incorrect Login");
+    showPopup("Incorrect Login");
     return false;
 }
 
@@ -27,7 +27,7 @@ function register() {
     let role = document.getElementById("role").value;
 
     if(first in users){
-        alert("That email is already registered with an account!")
+        showPopup("That email is already registered with an account!")
         return false;
     }
 
@@ -37,13 +37,13 @@ function register() {
         let cardCVV = document.getElementById("cardCVV").value.trim();
 
         if(!cardNumber || !cardExpiry || !cardCVV){
-            alert("Admins must provide credit card information!");
+            showPopup("Admins must provide credit card information!");
             return false;
         }
 
         // Card number must be 16 digits
         if(cardNumber.length != 16 || !isAllDigits(cardNumber)){
-            alert("Card Number must be 16 digits (numbers only)!");
+            showPopup("Card Number must be 16 digits (numbers only)!");
             return false;
         }
 
@@ -51,13 +51,13 @@ function register() {
         let month = cardExpiry.substring(0, 2);
         let year = cardExpiry.substring(3, 5);
         if(cardExpiry.length != 5 || cardExpiry[2] != "/" || !isAllDigits(month) || !isAllDigits(year)){
-            alert("Expiry must be in MM/YY format!");
+            showPopup("Expiry must be in MM/YY format!");
             return false;
         }
 
         // Month must be between 01 and 12
         if(Number(month) < 1 || Number(month) > 12){
-            alert("Expiry month must be between 01 and 12!");
+            showPopup("Expiry month must be between 01 and 12!");
             return false;
         }
 
@@ -66,27 +66,35 @@ function register() {
         let thisMonth = now.getMonth() + 1;
         let thisYear = now.getFullYear() - 2000;
         if(Number(year) < thisYear || (Number(year) == thisYear && Number(month) < thisMonth)){
-            alert("This card has expired!");
+            showPopup("This card has expired!");
             return false;
         }
 
         // CVV must be 3 digits
         if(cardCVV.length != 3 || !isAllDigits(cardCVV)){
-            alert("CVV must be 3 digits!");
+            showPopup("CVV must be 3 digits!");
             return false;
         }
     }
 
     users[first] = {password: second, role: role};
     
+    // Go to the right dashboard after the user clicks OK
     if(users[first].role == "admin"){
-        window.location.href = "admin_dashboard.html";
+        showPopup("Register Successful", goToAdminDashboard);
     }
     else{
-        window.location.href = "user_dashboard.html";
+        showPopup("Register Successful", goToUserDashboard);
     }
-    alert("Register Successful")
     return false;
+}
+
+function goToAdminDashboard() {
+    window.location.href = "admin_dashboard.html";
+}
+
+function goToUserDashboard() {
+    window.location.href = "user_dashboard.html";
 }
 
 // Returns true if the text only has the numbers 0-9
@@ -112,7 +120,10 @@ function adminRegister() {
 
 function resetData() {
     localStorage.removeItem("users");
-    alert("Data reset. Default accounts restored on next load.");
+    showPopup("Data reset. Default accounts restored on next load.", reloadPage);
+}
+
+function reloadPage() {
     location.reload();
 }
 

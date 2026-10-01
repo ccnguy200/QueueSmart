@@ -6,6 +6,12 @@
 
         <!-- Link style sheet for uniform design and text -->
         <link rel="stylesheet" href="../styles.css">
+
+        <!-- Places and distance function for the location feature -->
+        <script src="../location.js"></script>
+
+        <!-- Pop-up messages that match the site style -->
+        <script src="../popup.js"></script>
     </head>
     <!-- Body content -->
     <body>
@@ -16,6 +22,9 @@
                 <ul>
                     <!-- Link to user dashboard screen -->
                     <li><a href="user_dashboard.html">User Dashboard</a></li>
+
+                    <!-- Link to location screen -->
+                    <li><a href="user_location.html">Location</a></li>
 
                     <!-- Link to join queue screen -->
                     <li><a href="join_queue.html">Join Queue</a></li>
@@ -38,6 +47,20 @@
         <!-- Queue Status Screen -->
         <!-- Note: Mock Data used -->
         <h1>Queue Status</h1>
+
+        <!-- Notification: shown when it is almost the user's turn -->
+        <div class="card" id="alert-card" style="display:none; border: 2px solid darkorange;">
+            <h3>Almost your turn!</h3>
+            <!-- Message is set by renderStatus() -->
+            <p id="alert-message"></p>
+        </div>
+
+        <!-- Shown when the user missed their turn -->
+        <div class="card" id="missed-card" style="display:none; border: 2px solid firebrick;">
+            <h3>You missed your turn</h3>
+            <p id="missed-message">You can rejoin the queue within 10 minutes.</p>
+            <button class="btn" id="rejoin-btn" onclick="rejoinQueue()">Rejoin Queue</button>
+        </div>
 
         <!-- Feature 1: Current position and estimated wait time -->
         <div class="card">
@@ -69,16 +92,59 @@
             </div>
         </div>
 
+        <!-- Location Feature: check in when you arrive (must be within 0.5 miles) -->
+        <div class="card">
+            <h3>Check In</h3>
+            <p><strong>Status:</strong> <span id="checkin-badge" class="badge badge-waiting">Not checked in</span></p>
+
+            <!-- Hidden after the user checks in -->
+            <div id="checkin-area">
+                <!-- Building name is filled in when the page loads -->
+                <p class="hint" id="checkin-hint"></p>
+
+                <!-- onsubmit calls checkIn() -->
+                <form id="checkin-form" onsubmit="checkIn(event)" novalidate>
+                    <!-- Option 1: let the browser find the location -->
+                    <p>
+                        <button type="button" class="btn-secondary" onclick="useMyLocation()">Use My Location</button>
+                    </p>
+
+                    <!-- Option 2: Latitude: required, number between -90 and 90 -->
+                    <div class="form-group">
+                        <label for="latitude">Latitude: <span class="required">*</span></label>
+                        <input type="number" id="latitude" name="latitude" min="-90" max="90" step="any" placeholder="ex. 29.7213" required>
+                    </div>
+
+                    <!-- Longitude: required, number between -180 and 180 -->
+                    <div class="form-group">
+                        <label for="longitude">Longitude: <span class="required">*</span></label>
+                        <input type="number" id="longitude" name="longitude" min="-180" max="180" step="any" placeholder="ex. -95.3425" required>
+                    </div>
+
+                    <!-- Form error message -->
+                    <p id="form-error" style="color:#c0392b; display:none;"></p>
+
+                    <button type="submit" class="btn">I'm Here</button>
+                </form>
+            </div>
+        </div>
+
         <!-- Feature 3: Status update notifications -->
         <div class="card">
             <h3>Status Updates</h3>
             <ul class="updates" id="updates-list"></ul>
         </div>
 
-        <!-- Actions -->
-        <div class="card">
+        <!-- Actions (toolbar adds space when the buttons wrap) -->
+        <div class="card toolbar">
             <!-- Simulates the next status change (UI only) -->
             <button class="btn" onclick="advanceStatus()">Simulate Next Update</button>
+
+            <!-- Ask for more time (moves the user back one spot, only once) -->
+            <button class="btn-secondary" id="late-btn" onclick="runningLate()">I'm Running Late (move back 1 spot)</button>
+
+            <!-- Simulates the user not showing up when called (UI only) -->
+            <button class="btn-secondary" onclick="missTurn()">Simulate Missed Turn</button>
 
             <!-- Leave the queue -->
             <a href="user_dashboard.html" class="btn-danger">Leave Queue</a>
@@ -89,8 +155,20 @@
             // Possible statuses, in order
             const statuses = ["Waiting", "Almost Ready", "Served"];
 
-            // Average minutes per person
-            const minutesPerPerson = 10;
+            // Service the user joined (join_queue.html sends ?service=...)
+            // Note: mock data, the user starts in the Academic Advising queue
+            const params = new URLSearchParams(window.location.search);
+            let serviceKey = params.get("service");
+            if (serviceKey !== "Financial Aid" && serviceKey !== "Tutoring") {
+                serviceKey = "Advising";
+            }
+
+            // Full name of each service
+            const serviceNames = { "Advising": "Academic Advising", "Financial Aid": "Financial Aid Office", "Tutoring": "Tutoring Services" };
+
+            // Average minutes per person, per service (same as Queue Management)
+            const minutesEach = { "Advising": 10, "Financial Aid": 8, "Tutoring": 5 };
+            const minutesPerPerson = minutesEach[serviceKey];
 
             // Current position in the queue (mock)
             let position = 3;
@@ -98,11 +176,36 @@
             // Index into the statuses array
             let statusIndex = 0;
 
+            // The building for this queue (from location.js)
+            const place = places[serviceKey];
+
+            // Admin setting (mock): send "almost your turn" at this position
+            const notifyAtPosition = 2;
+
+            // true after the user checks in at the building
+            let checkedIn = false;
+
+            // true after the user asks for more time (only allowed once)
+            let usedLate = false;
+
+            // true while the user has missed their turn
+            let missed = false;
+
+            // Timer that ends the 10 minutes to rejoin
+            let rejoinTimer = null;
+
+            // true when the 10 minutes to rejoin are over
+            let rejoinOver = false;
+
             // Mock status updates: [message, time], newest first
             let updates = [
                 ["Your position is now #3.", "10:05 AM"],
-                ["You joined the Academic Advising queue.", "10:02 AM"]
+                ["You joined the " + serviceNames[serviceKey] + " queue.", "10:02 AM"]
             ];
+
+            // Show the service and building names on the page
+            document.getElementById("service-name").innerText = serviceNames[serviceKey];
+            document.getElementById("checkin-hint").innerText = "When you arrive at " + place.name + ", check in so staff know you are here.";
 
             // Return the badge class for a status
             function badgeClass(status) {
@@ -119,17 +222,29 @@
             function renderStatus() {
                 const status = statuses[statusIndex];
 
-                document.getElementById("position").innerText = "#" + position;
-                // Wait time is 0 once the user has been served
+                // Position is unknown after a missed turn
+                if (missed) {
+                    document.getElementById("position").innerText = "-";
+                } else {
+                    document.getElementById("position").innerText = "#" + position;
+                }
+                // Wait time is 0 once the user has been served, and unknown after a missed turn
                 if (status === "Served") {
                     document.getElementById("wait-time").innerText = "0 minutes";
+                } else if (missed) {
+                    document.getElementById("wait-time").innerText = "-";
                 } else {
                     document.getElementById("wait-time").innerText = (position * minutesPerPerson) + " minutes";
                 }
 
                 const badge = document.getElementById("status-badge");
-                badge.innerText = status;
-                badge.className = "badge " + badgeClass(status);
+                if (missed) {
+                    badge.innerText = "Missed";
+                    badge.className = "badge badge-missed";
+                } else {
+                    badge.innerText = status;
+                    badge.className = "badge " + badgeClass(status);
+                }
 
                 // Highlight the progress steps
                 for (let i = 0; i < statuses.length; i++) {
@@ -138,9 +253,29 @@
 
                     if (i < statusIndex) {
                         step.className = "step done";
-                    } else if (i === statusIndex) {
+                    } else if (i === statusIndex && !missed) {
                         step.className = "step active";
                     }
+                }
+
+                // Show "almost your turn" when close to the front (not served or missed)
+                const alertCard = document.getElementById("alert-card");
+                if (checkedIn) {
+                    document.getElementById("alert-message").innerText = "You are checked in. Please wait to be called.";
+                } else {
+                    document.getElementById("alert-message").innerText = "Please head to " + place.name + " and check in when you get there.";
+                }
+                if (!missed && status !== "Served" && position <= notifyAtPosition) {
+                    alertCard.style.display = "block";
+                } else {
+                    alertCard.style.display = "none";
+                }
+
+                // Show the missed card only while the user has missed their turn
+                if (missed) {
+                    document.getElementById("missed-card").style.display = "block";
+                } else {
+                    document.getElementById("missed-card").style.display = "none";
                 }
 
                 // Build the status updates list
@@ -154,43 +289,233 @@
                 }
             }
 
+            // Build the current time, e.g. 10:15 AM
+            function currentTime() {
+                const now = new Date();
+                let hour = now.getHours();
+                let minute = now.getMinutes();
+                let suffix = "AM";
+
+                if (hour >= 12) {
+                    suffix = "PM";
+                }
+                if (hour === 0) {
+                    hour = 12;
+                }
+                if (hour > 12) {
+                    hour = hour - 12;
+                }
+                if (minute < 10) {
+                    minute = "0" + minute;
+                }
+
+                return hour + ":" + minute + " " + suffix;
+            }
+
+            // Add a message to the top of the status updates list
+            function addUpdate(message) {
+                updates.unshift([message, currentTime()]);
+            }
+
             // Move to the next status (UI simulation)
             function advanceStatus() {
-                if (statusIndex < statuses.length - 1) {
-                    statusIndex = statusIndex + 1;
-
-                    // Move up one position, but never below #1
-                    position = position - 1;
-                    if (position < 1) {
-                        position = 1;
-                    }
-
-                    // Build the current time, e.g. 10:15 AM
-                    const now = new Date();
-                    let hour = now.getHours();
-                    let minute = now.getMinutes();
-                    let suffix = "AM";
-
-                    if (hour >= 12) {
-                        suffix = "PM";
-                    }
-                    if (hour === 0) {
-                        hour = 12;
-                    }
-                    if (hour > 12) {
-                        hour = hour - 12;
-                    }
-                    if (minute < 10) {
-                        minute = "0" + minute;
-                    }
-
-                    const time = hour + ":" + minute + " " + suffix;
-                    updates.unshift(["Status changed to: " + statuses[statusIndex] + ".", time]);
-
-                    renderStatus();
-                } else {
-                    alert("You have already been served.");
+                if (missed && rejoinOver) {
+                    showPopup("The 10 minutes to rejoin are over. Please click Leave Queue and join again.");
+                    return;
                 }
+                if (missed) {
+                    showPopup("You missed your turn. Please rejoin the queue first.");
+                    return;
+                }
+                if (statuses[statusIndex] === "Served") {
+                    showPopup("You have already been served.");
+                    return;
+                }
+
+                if (statusIndex === 1) {
+                    // Almost Ready -> Served (the user is at the front now)
+                    statusIndex = 2;
+                    position = 1;
+                    addUpdate("Status changed to: Served.");
+                } else {
+                    // Move up one position
+                    position = position - 1;
+                    addUpdate("Your position is now #" + position + ".");
+
+                    // Close to the front: Almost Ready
+                    if (position <= notifyAtPosition) {
+                        statusIndex = 1;
+                        addUpdate("Status changed to: Almost Ready.");
+
+                        // Notification when it is almost the user's turn
+                        if (!checkedIn) {
+                            addUpdate("Almost your turn! Please head to " + place.name + ".");
+                        }
+                    }
+                }
+
+                renderStatus();
+            }
+
+            // Ask for more time: move back one spot (only once)
+            function runningLate() {
+                if (missed || statuses[statusIndex] === "Served") {
+                    showPopup("You cannot ask for more time right now.");
+                    return;
+                }
+                if (usedLate) {
+                    showPopup("You can only ask for more time once.");
+                    return;
+                }
+
+                usedLate = true;
+                position = position + 1;
+                document.getElementById("late-btn").disabled = true;
+
+                addUpdate("You asked for more time. You moved back to #" + position + ".");
+
+                // Back to Waiting if the user is no longer close to the front
+                if (statusIndex === 1 && position > notifyAtPosition) {
+                    statusIndex = 0;
+                    addUpdate("Status changed to: Waiting.");
+                }
+                renderStatus();
+            }
+
+            // The user did not show up when called (UI simulation)
+            function missTurn() {
+                if (statuses[statusIndex] === "Served") {
+                    showPopup("You have already been served.");
+                    return;
+                }
+                if (missed) {
+                    showPopup("You already missed your turn.");
+                    return;
+                }
+                if (statusIndex !== 1) {
+                    showPopup("You can only miss your turn when it is almost your turn.");
+                    return;
+                }
+
+                missed = true;
+                rejoinOver = false;
+                addUpdate("You missed your turn. You can rejoin within 10 minutes.");
+
+                // The user was not here, so they need to check in again later
+                checkedIn = false;
+                document.getElementById("checkin-badge").innerText = "Not checked in";
+                document.getElementById("checkin-badge").className = "badge badge-waiting";
+                document.getElementById("checkin-area").style.display = "block";
+
+                // Show the rejoin button again (it may be hidden from last time)
+                document.getElementById("missed-message").innerText = "You can rejoin the queue within 10 minutes.";
+                document.getElementById("rejoin-btn").style.display = "inline-block";
+
+                // After 10 minutes the user can no longer rejoin
+                clearTimeout(rejoinTimer);
+                rejoinTimer = setTimeout(endRejoinTime, 10 * 60 * 1000);
+
+                renderStatus();
+            }
+
+            // Put the user back at the end of the queue
+            function rejoinQueue() {
+                clearTimeout(rejoinTimer);
+                clearError();
+                missed = false;
+                rejoinOver = false;
+                statusIndex = 0;
+                position = 4;
+                addUpdate("You rejoined the queue at #" + position + ".");
+                renderStatus();
+            }
+
+            // 10 minutes have passed since the missed turn
+            function endRejoinTime() {
+                if (missed) {
+                    rejoinOver = true;
+                    document.getElementById("missed-message").innerText = "The 10 minutes to rejoin are over. Please click Leave Queue and join again.";
+                    document.getElementById("rejoin-btn").style.display = "none";
+                }
+            }
+
+            // Ask the browser for the user's location
+            function useMyLocation() {
+                if (!navigator.geolocation) {
+                    return showError("Your browser cannot share your location. Please type it in below.");
+                }
+                clearError();
+                navigator.geolocation.getCurrentPosition(locationFound, locationError);
+            }
+
+            // The browser found the location: fill in the boxes and check in
+            function locationFound(myLocation) {
+                document.getElementById("latitude").value = myLocation.coords.latitude.toFixed(4);
+                document.getElementById("longitude").value = myLocation.coords.longitude.toFixed(4);
+                checkIn();
+            }
+
+            // The browser could not get the location
+            function locationError() {
+                showError("Could not get your location. Please type it in below.");
+            }
+
+            // Check in: the user must be within 0.5 miles of the building
+            function checkIn(event) {
+                // event is empty when called from locationFound()
+                if (event) {
+                    event.preventDefault();
+                }
+
+                // Already checked in: nothing to do
+                if (checkedIn) {
+                    return;
+                }
+
+                if (missed || statuses[statusIndex] === "Served") {
+                    return showError("You cannot check in right now.");
+                }
+
+                const latText = document.getElementById("latitude").value;
+                const lngText = document.getElementById("longitude").value;
+
+                // Client-side validation
+                const coordinateError = checkCoordinates(latText, lngText);
+                if (coordinateError !== "") {
+                    return showError(coordinateError);
+                }
+
+                // Work out the distance to the building
+                const miles = getDistance(Number(latText), Number(lngText), place.latitude, place.longitude);
+                if (miles > allowedMiles) {
+                    return showError("You are " + miles.toFixed(2) + " miles away. You must be within 0.5 miles of " + place.name + " to check in.");
+                }
+
+                clearError();
+                checkedIn = true;
+
+                const badge = document.getElementById("checkin-badge");
+                badge.innerText = "Checked in";
+                badge.className = "badge badge-served";
+                document.getElementById("checkin-area").style.display = "none";
+
+                addUpdate("You checked in at " + place.name + ".");
+                renderStatus();
+            }
+
+            // Show a validation error
+            function showError(message) {
+                const error = document.getElementById("form-error");
+                error.innerText = message;
+                error.style.display = "block";
+                return false;
+            }
+
+            // Hide the validation error
+            function clearError() {
+                const error = document.getElementById("form-error");
+                error.innerText = "";
+                error.style.display = "none";
             }
 
             renderStatus();

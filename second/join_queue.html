@@ -6,9 +6,12 @@
 
         <!-- Link style sheet for uniform design and text -->
         <link rel="stylesheet" href="../styles.css">
+
+        <!-- Pop-up messages that match the site style -->
+        <script src="../popup.js"></script>
     </head>
-    <!-- When the page is shown (also after pressing Back), updateWaitTime function called -->
-    <body onpageshow="updateWaitTime()">
+    <!-- When the page is shown (also after pressing Back), updateWaitTime and showLocationStatus functions called -->
+    <body onpageshow="updateWaitTime(); showLocationStatus()">
         <header>
             <h2>QueueSmart</h2>
             <!-- Navigation to other files -->
@@ -16,6 +19,9 @@
                 <ul>
                     <!-- Link to user dashboard screen -->
                     <li><a href="user_dashboard.html">User Dashboard</a></li>
+
+                    <!-- Link to location screen -->
+                    <li><a href="user_location.html">Location</a></li>
 
                     <!-- Link to join queue screen -->
                     <li><a href="join_queue.html">Join Queue</a></li>
@@ -43,13 +49,13 @@
         <div class="card">
             <!-- Link to queue.html when after joining a queue -->
             <!-- When submitted, checkForm function called -->
-            <form action="queue_status.html" method="GET" onsubmit="return checkForm()">
+            <form id="join-form" action="queue_status.html" method="GET" onsubmit="return checkForm()">
 
                 <!-- Feature 1: Select a service -->
                 <div class="form-group">
                     <label for="service">Select Service: <span style="color:red;">*</span></label>
-                    <!-- When service selected, updateWaitTime function called -->
-                    <select id="service" name="service" required onchange="updateWaitTime()">
+                    <!-- When service selected, updateWaitTime and showLocationStatus functions called -->
+                    <select id="service" name="service" required onchange="updateWaitTime(); showLocationStatus()">
                         <option value="" disabled selected>-- Please Select a Service --</option>
                         <option value="Advising">Academic Advising</option>
                         <option value="Financial Aid">Financial Aid Office</option>
@@ -57,10 +63,17 @@
                     </select>
                 </div>
 
+                <!-- Location Feature: user must check their location before joining -->
+                <p>
+                    <span id="location-status"></span>
+                    <a id="location-link" href="user_location.html">Check Location</a>
+                </p>
+
                 <!-- Feature 2: View estimated wait time + price for queue -->
                 <div class="info-box">
                     <p style="margin: 0;"><strong>Estimated Wait Time:</strong> <span id="est-wait">Select a service above</span></p>
                     <p style="margin: 5px 0 0 0;"><strong>Fee to Join Queue:</strong> <span id="service-fee">$0.00</span></p>
+                    <p style="margin: 5px 0 0 0;"><strong>Spots Left:</strong> <span id="spots-left">-</span></p>
                 </div>
 
                 <!-- Calendar Feature: User can view time slots and join a queue from calendar -->
@@ -122,17 +135,57 @@
         <!-- updateWaitTime(): will display estimated wait time for selected service by the user + fee to join -->
         <!-- Note: mock data used -->
         <script>
+            // Location Feature: user_location.html sends ?service=...&location=ok
+            const params = new URLSearchParams(window.location.search);
+            let checkedService = "";
+            if (params.get("location") === "ok") {
+                checkedService = params.get("service");
+            }
+
+            // Select the service the location was checked for
+            if (checkedService === "Advising" || checkedService === "Financial Aid" || checkedService === "Tutoring") {
+                document.getElementById("service").value = checkedService;
+            }
+            else {
+                checkedService = "";
+            }
+
+            // Each person can only be in one queue at a time
+            // Note: mock data, the user is already in the Academic Advising queue
+            const currentQueue = "Advising";
+
+            // true after the user agrees to leave their current queue
+            let switchConfirmed = false;
+
+            // Queue size, size limit, and open/closed for each service
+            // Note: mock data, same as the admin screens
+            const queueSize = { "Advising": 4, "Financial Aid": 2, "Tutoring": 0 };
+            const maxQueueSize = { "Advising": 10, "Financial Aid": 8, "Tutoring": 5 };
+            const queueOpen = { "Advising": true, "Financial Aid": true, "Tutoring": false };
+
             function updateWaitTime() {
                 const serviceSelected = document.getElementById("service").value;
                 const waitTime = document.getElementById("est-wait");
                 const queueFee = document.getElementById("service-fee");
+                const spotsLeft = document.getElementById("spots-left");
+
+                // Show how many spots are left (or that the queue is closed)
+                if (serviceSelected === "") {
+                    spotsLeft.innerText = "-";
+                }
+                else if (queueOpen[serviceSelected] === false) {
+                    spotsLeft.innerText = "This queue is closed right now";
+                }
+                else {
+                    spotsLeft.innerText = (maxQueueSize[serviceSelected] - queueSize[serviceSelected]) + " of " + maxQueueSize[serviceSelected];
+                }
 
                 if (serviceSelected === "Advising") {
                     waitTime.innerText = "30 minutes";
                     queueFee.innerText = "$20.00";
                 }
                 else if (serviceSelected === "Financial Aid") {
-                    waitTime.innerText = "15 minutes";
+                    waitTime.innerText = "24 minutes";
                     queueFee.innerText = "$15.00";
                 }
                 else if (serviceSelected === "Tutoring") {
@@ -145,14 +198,57 @@
                 }
             }
 
-            // checkForm(): checks the date and payment details before joining the queue
+            // showLocationStatus(): shows if the location was checked for the selected service
+            function showLocationStatus() {
+                const service = document.getElementById("service").value;
+                const status = document.getElementById("location-status");
+                const link = document.getElementById("location-link");
+
+                if (service === currentQueue) {
+                    status.innerText = "You are already in the Academic Advising queue.";
+                    status.style.color = "#c0392b";
+                    link.style.display = "none";
+                }
+                else if (checkedService !== "" && service === checkedService) {
+                    status.innerText = "Location checked. You are close enough to join this queue.";
+                    status.style.color = "green";
+                    link.style.display = "none";
+                }
+                else {
+                    status.innerText = "Please check your location for this service before joining.";
+                    status.style.color = "#c0392b";
+                    link.style.display = "inline";
+                    link.href = "user_location.html?service=" + encodeURIComponent(service);
+                }
+            }
+
+            // checkForm(): checks the location, date and payment details before joining the queue
             function checkForm() {
+                const service = document.getElementById("service").value;
                 const queueDate = document.getElementById("queue-date").value;
                 const queueTime = document.getElementById("queue-time").value;
                 const cardName = document.getElementById("card-name").value.trim();
                 const cardNumber = document.getElementById("card-number").value;
                 const expDate = document.getElementById("exp-date").value;
                 const cvv = document.getElementById("cvv").value;
+
+                // The user cannot join a queue they are already in
+                if (service === currentQueue) {
+                    return showError("You are already in the Academic Advising queue.");
+                }
+
+                // The queue must be open and not full
+                if (queueOpen[service] === false) {
+                    return showError("This queue is closed right now.");
+                }
+                if (queueSize[service] >= maxQueueSize[service]) {
+                    return showError("This queue is full. Please try again later.");
+                }
+
+                // Location must be checked for this service first
+                if (checkedService === "" || service !== checkedService) {
+                    return showError("Please check your location for this service before joining.");
+                }
 
                 // Date cannot be in the past
                 const parts = queueDate.split("-");
@@ -207,8 +303,21 @@
                     return showError("CVV must be 3 digits.");
                 }
 
+                // Each person can only be in one queue at a time
+                // Ask first, and send the form only if the user clicks Yes
+                if (!switchConfirmed) {
+                    showConfirm("You are already in the Academic Advising queue. Leave it and join this queue instead?", confirmSwitch);
+                    return false;
+                }
+
                 clearError();
                 return true;
+            }
+
+            // confirmSwitch(): the user said yes, so send the form
+            function confirmSwitch() {
+                switchConfirmed = true;
+                document.getElementById("join-form").submit();
             }
 
             // isAllDigits(): returns true if the text only has the numbers 0-9

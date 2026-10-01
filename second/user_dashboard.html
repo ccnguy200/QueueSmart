@@ -17,6 +17,9 @@
                     <!-- Link to user dashboard screen -->
                     <li><a href="user_dashboard.html">User Dashboard</a></li>
 
+                    <!-- Link to location screen -->
+                    <li><a href="user_location.html">Location</a></li>
+
                     <!-- Link to join queue screen -->
                     <li><a href="join_queue.html">Join Queue</a></li>
                     
@@ -52,16 +55,34 @@
             <a href="queue_status.html" class="btn">View Queue Status</a>
         </div>
 
+        <!-- Location Feature: distance from the user to the queue location -->
+        <!-- Note: mock data used (last time the user checked) -->
+        <div class="card">
+            <h3>Your Location</h3>
+            <!-- Building where the queue is -->
+            <p><strong>Queue Location:</strong> Student Service Center 1</p>
+            <!-- Distance from the last check -->
+            <p><strong>Distance:</strong> 0.2 miles (checked at 10:01 AM)</p>
+            <!-- Within 0.5 miles or too far -->
+            <p><strong>Status:</strong> <span class="badge badge-open">Within range</span></p>
+            <!-- Click to check the distance again -->
+            <a href="user_location.html?service=Advising" class="btn">Check Location</a>
+        </div>
+
         <!-- Calendar Feature: User will see an overview of queues they have scheduled to join -->
         <!-- Notes: mock data used -->
         <div class="card">
             <h3>Upcoming Queue Services</h3>
             <!-- Upcoming service -->
-            <p><strong>Upcoming Service:</strong> Academic Advising</p>
+            <p><strong>Upcoming Service:</strong> Financial Aid Office</p>
             <!-- Upcoming date and time -->
-            <p><strong>Date and Time:</strong> September 24, 2026 at 1:00 PM</p>
+            <p><strong>Date and Time:</strong> October 25, 2026 at 1:00 PM</p>
             <!-- Status of appointment: confirmed, canceled, etc. -->
             <p><strong>Appointment Status:</strong> Confirmed</p>
+            <!-- When the reminder will be sent -->
+            <p><strong>Reminder:</strong> 1 day before</p>
+            <!-- Click to reschedule or cancel on the calendar -->
+            <a href="user_calendar.html" class="btn-secondary">Reschedule or Cancel</a>
         </div>
 
         <!-- Payment Feature: User will see their payment history -->
@@ -74,21 +95,56 @@
             <p><strong>Transaction Status:</strong> Processed</p>
         </div>
 
-        <!-- Feature 2: Notifications summary -->
+        <!-- Feature 2: Notifications summary (newest first) -->
         <div class="card">
             <h3>Notifications Summary</h3>
-            <ul>
-                <!-- Ex. Alert for change in user's position -->
-                 <li>Your position is now #3</li>
+            <ul class="updates">
+                <!-- Queue update: change in user's position -->
+                <li>Your position in the Academic Advising queue is now #3.<div class="time">10:05 AM</div></li>
+
+                <!-- Status change -->
+                <li>Your status changed to: Waiting.<div class="time">10:02 AM</div></li>
+
+                <!-- Location check -->
+                <li>You are within range of Student Service Center 1.<div class="time">10:01 AM</div></li>
+
+                <!-- Calendar: appointment confirmed -->
+                <li>Your Financial Aid Office appointment on October 25 at 1:00 PM is confirmed.<div class="time">9:00 AM</div></li>
             </ul>
         </div>
 
         <!-- Feature 3: Active services available -->
+        <!-- Note: mock data used (same services as the admin screens) -->
         <div class="card">
             <h3>Active services available</h3>
-            <p>Talk to an advisor about course selection.</p>
-            <!-- Link to join the queue -->
-            <a href="join_queue.html" class="btn">Join Queue</a>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Service</th>
+                        <th>Description</th>
+                        <th>Status</th>
+                        <th>Join</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Each Join link checks the location first -->
+                    <tr>
+                        <!-- The user is already in this queue -->
+                        <td>Academic Advising</td>
+                        <td>Talk to an advisor about course selection.</td>
+                        <td><span class="badge badge-open">Open</span></td>
+                        <td>In this queue</td>
+                    </tr>
+                    <tr>
+                        <td>Financial Aid Office</td>
+                        <td>Help with FAFSA, scholarships, and aid questions.</td>
+                        <td><span class="badge badge-open">Open</span></td>
+                        <td><a href="user_location.html?service=Financial%20Aid">Join Queue</a></td>
+                    </tr>
+                </tbody>
+            </table>
+            <!-- Closed queues are not listed above -->
+            <p class="hint">Closed right now: Tutoring Services</p>
         </div>
 
     </body>

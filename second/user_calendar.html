@@ -3,6 +3,9 @@
     <head>
         <title>User Calendar</title> 
         <link rel="stylesheet" href="../styles.css">      
+
+        <!-- Pop-up messages that match the site style -->
+        <script src="../popup.js"></script>
     </head>
     <body>
         <div>
@@ -10,6 +13,7 @@
             <nav>
                 <ul>
                     <li><a href="user_dashboard.html">User Dashboard</a></li>
+                    <li><a href="user_location.html">Location</a></li>
                     <li><a href="join_queue.html">Join Queue</a></li>
                     <li><a href="queue_status.html">Queue Status</a></li>
                     <li><a href="history.html">History</a></li>
@@ -18,6 +22,12 @@
                 </ul>
             </nav>
         <h1>User Calendar</h1>
+        </div>
+
+        <!-- Reminder: shown when an appointment is today or tomorrow -->
+        <div class="card" id="reminder-card" style="display:none; border: 2px solid darkorange;">
+            <h3>Reminder</h3>
+            <ul id="reminder-list"></ul>
         </div>
 
         <div class="card">
@@ -51,19 +61,50 @@
                 <thead>
                     <tr>
                         <th>Date</th>
+                        <th>Time</th>
                         <th>Service</th>
+                        <th>Reminder</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody id="events-body"></tbody>
             </table>
         </div>
 
+        <!-- Reschedule form: shown after clicking Reschedule -->
+        <div class="card" id="reschedule-card" style="display:none;">
+            <h3 id="reschedule-title">Reschedule</h3>
+            <form onsubmit="saveReschedule(event)" novalidate>
+                <!-- New date: required, today or later -->
+                <div class="form-group">
+                    <label for="new-date">New Date: <span class="required">*</span></label>
+                    <input type="date" id="new-date" required>
+                </div>
+
+                <!-- New time: required -->
+                <div class="form-group">
+                    <label for="new-time">New Time: <span class="required">*</span></label>
+                    <input type="time" id="new-time" required>
+                </div>
+
+                <!-- Form error message -->
+                <p id="form-error" style="color:#c0392b; display:none;"></p>
+
+                <button type="submit" class="btn">Save New Time</button>
+                <button type="button" class="btn-secondary" onclick="closeReschedule()">Cancel</button>
+            </form>
+        </div>
+
         <script>
-            const events = [
-                {date: "2026-09-24", title: "Academic Advising"},
-                {date: "2026-10-25", title: "Financial Aid Office"},
-                {date: "2026-11-26", title: "Tutoring Services"}
+            // Mock appointments (time is 24 hour, status is Confirmed or Canceled)
+            let events = [
+                {date: "2026-09-24", time: "13:00", title: "Academic Advising", status: "Confirmed"},
+                {date: "2026-10-25", time: "13:00", title: "Financial Aid Office", status: "Confirmed"},
+                {date: "2026-11-26", time: "10:30", title: "Tutoring Services", status: "Confirmed"}
             ];
+
+            // The appointment being rescheduled (-1 means none)
+            let editIndex = -1;
 
             let month = new Date().getMonth();
             let year = new Date().getFullYear();
@@ -97,6 +138,10 @@
                     
                     for (let e = 0; e < events.length; e++){
                         const parts = events[e].date.split("-");
+                        // Canceled appointments are not highlighted
+                        if (events[e].status === "Canceled"){
+                            continue;
+                        }
                         if (Number(parts[0]) === year && Number(parts[1]) - 1 === month && Number(parts[2]) === curr){
                             cell.style.backgroundColor = "#ffc078";
                         }   
@@ -135,12 +180,217 @@
                 body.innerHTML = "";
 
                 for (let i=0; i < events.length; i++){
+                    let reminder = "-";
+                    let actions = "Done";
+
+                    if (events[i].status === "Canceled"){
+                        actions = '<span class="badge badge-closed">Canceled</span>';
+                    }
+                    else if (!isPast(events[i].date)){
+                        // Upcoming: a reminder is sent 1 day before, and it can be changed
+                        reminder = "1 day before (" + dayBefore(events[i].date) + ")";
+
+                        // No reminder if the day before has already passed
+                        if (isPast(dayBeforeText(events[i].date))){
+                            reminder = "-";
+                        }
+                        actions =
+                            '<button class="btn-secondary" onclick="openReschedule(' + i + ')">Reschedule</button>' +
+                            '<button class="btn-danger" onclick="cancelEvent(' + i + ')">Cancel</button>';
+                    }
+
                     const row = document.createElement("tr");
                     row.innerHTML = 
                         "<td>" + events[i].date + "</td>" +
-                        "<td>" + events[i].title + "</td>";
+                        "<td>" + formatTime(events[i].time) + "</td>" +
+                        "<td>" + events[i].title + "</td>" +
+                        "<td>" + reminder + "</td>" +
+                        '<td class="actions">' + actions + "</td>";
                     body.appendChild(row);
                 }
+
+                showReminders();
+            }
+
+            // Turn "YYYY-MM-DD" into a Date at midnight
+            function toDate(dateText){
+                const parts = dateText.split("-");
+                return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+            }
+
+            // Today at midnight
+            function getToday(){
+                const now = new Date();
+                return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            }
+
+            // true if the date is before today
+            function isPast(dateText){
+                return toDate(dateText) < getToday();
+            }
+
+            // The day before a date, e.g. "10/24"
+            function dayBefore(dateText){
+                const date = toDate(dateText);
+                date.setDate(date.getDate() - 1);
+                return (date.getMonth() + 1) + "/" + date.getDate();
+            }
+
+            // The day before a date, as "YYYY-MM-DD"
+            function dayBeforeText(dateText){
+                const date = toDate(dateText);
+                date.setDate(date.getDate() - 1);
+                let month = date.getMonth() + 1;
+                let day = date.getDate();
+                if (month < 10){
+                    month = "0" + month;
+                }
+                if (day < 10){
+                    day = "0" + day;
+                }
+                return date.getFullYear() + "-" + month + "-" + day;
+            }
+
+            // Turn "13:00" into "1:00 PM"
+            function formatTime(timeText){
+                const parts = timeText.split(":");
+                let hour = Number(parts[0]);
+                let suffix = "AM";
+
+                if(hour >= 12){
+                    suffix = "PM";
+                }
+                if(hour === 0){
+                    hour = 12;
+                }
+                if(hour > 12){
+                    hour = hour - 12;
+                }
+                return hour + ":" + parts[1] + " " + suffix;
+            }
+
+            // Show a reminder for appointments that are today or tomorrow
+            function showReminders(){
+                const list = document.getElementById("reminder-list");
+                list.innerHTML = "";
+
+                const tomorrow = getToday();
+                tomorrow.setDate(tomorrow.getDate() + 1);
+
+                let count = 0;
+                for (let i = 0; i < events.length; i++){
+                    const date = toDate(events[i].date);
+                    if (events[i].status === "Confirmed" && date >= getToday() && date <= tomorrow){
+                        let day = "tomorrow";
+                        if (date.getTime() === getToday().getTime()){
+                            day = "today";
+                        }
+                        const item = document.createElement("li");
+                        item.innerText = events[i].title + " is " + day + " at " + formatTime(events[i].time) + ".";
+                        list.appendChild(item);
+                        count++;
+                    }
+                }
+
+                if (count > 0){
+                    document.getElementById("reminder-card").style.display = "block";
+                } else {
+                    document.getElementById("reminder-card").style.display = "none";
+                }
+            }
+
+            // Show the reschedule form for one appointment
+            function openReschedule(index){
+                editIndex = index;
+                document.getElementById("reschedule-title").innerText = "Reschedule " + events[index].title;
+                document.getElementById("new-date").value = events[index].date;
+                document.getElementById("new-time").value = events[index].time;
+                clearError();
+                document.getElementById("reschedule-card").style.display = "block";
+
+                // Scroll down so the form is on the screen
+                document.getElementById("reschedule-card").scrollIntoView();
+            }
+
+            // Hide the reschedule form
+            function closeReschedule(){
+                editIndex = -1;
+                clearError();
+                document.getElementById("reschedule-card").style.display = "none";
+            }
+
+            // Check the new date and time, then save them
+            function saveReschedule(event){
+                event.preventDefault();
+
+                const newDate = document.getElementById("new-date").value;
+                const newTime = document.getElementById("new-time").value;
+
+                // Client-side validation
+                if (newDate === ""){
+                    return showError("Please select a new date.");
+                }
+                if (newTime === ""){
+                    return showError("Please select a new time.");
+                }
+                if (isPast(newDate)){
+                    return showError("Please select today or a future date.");
+                }
+
+                // If the date is today, the time cannot be earlier than now
+                if (toDate(newDate).getTime() === getToday().getTime()){
+                    const timeParts = newTime.split(":");
+                    const chosenMinutes = Number(timeParts[0]) * 60 + Number(timeParts[1]);
+                    const now = new Date();
+                    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+                    if (chosenMinutes < nowMinutes){
+                        return showError("Please select a time later than now.");
+                    }
+                }
+
+                events[editIndex].date = newDate;
+                events[editIndex].time = newTime;
+                showPopup(events[editIndex].title + " moved to " + newDate + " at " + formatTime(newTime) + ".");
+
+                closeReschedule();
+                createCalendar();
+                getEvents();
+            }
+
+            // Cancel an appointment after confirmation
+            function cancelEvent(index){
+                // Only cancel after the user clicks Yes
+                showConfirm("Cancel your " + events[index].title + " appointment on " + events[index].date + "?", function (){
+                    cancelConfirmed(index);
+                });
+            }
+
+            // Mark the appointment as canceled
+            function cancelConfirmed(index){
+                events[index].status = "Canceled";
+
+                // If this one was being rescheduled, close the form
+                if (editIndex === index){
+                    closeReschedule();
+                }
+
+                createCalendar();
+                getEvents();
+            }
+
+            // Show a validation error
+            function showError(message){
+                const error = document.getElementById("form-error");
+                error.innerText = message;
+                error.style.display = "block";
+                return false;
+            }
+
+            // Hide the validation error
+            function clearError(){
+                const error = document.getElementById("form-error");
+                error.innerText = "";
+                error.style.display = "none";
             }
 
             createCalendar();
