@@ -284,6 +284,9 @@
                 document.getElementById("new-time").value = events[index].time;
                 clearError();
                 document.getElementById("reschedule-card").style.display = "block";
+
+                // Scroll down so the form is on the screen
+                document.getElementById("reschedule-card").scrollIntoView();
             }
 
             // Hide the reschedule form
@@ -309,6 +312,17 @@
                 }
                 if (isPast(newDate)){
                     return showError("Please select today or a future date.");
+                }
+
+                // If the date is today, the time cannot be earlier than now
+                if (toDate(newDate).getTime() === getToday().getTime()){
+                    const timeParts = newTime.split(":");
+                    const chosenMinutes = Number(timeParts[0]) * 60 + Number(timeParts[1]);
+                    const now = new Date();
+                    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+                    if (chosenMinutes < nowMinutes){
+                        return showError("Please select a time later than now.");
+                    }
                 }
 
                 events[editIndex].date = newDate;
