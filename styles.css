@@ -360,3 +360,42 @@ a.btn-secondary:hover {
    font-style: italic;
    padding: 12px 0;
 }
+
+/* Pop-ups (popup.js): dark background over the whole page */
+.popup-overlay {
+   position: fixed;
+   top: 0;
+   left: 0;
+   right: 0;
+   bottom: 0;
+   background-color: rgba(0, 0, 0, 0.4);
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   z-index: 100;
+}
+
+/* White box in the middle, same look as the cards */
+.popup-box {
+   background: white;
+   border-radius: 10px;
+   border-top: 5px solid darkorange;
+   padding: 20px 25px;
+   width: 85%;
+   max-width: 400px;
+   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.popup-box p {
+   margin: 0 0 20px 0;
+   line-height: 1.4;
+}
+
+/* Buttons on the right */
+.popup-buttons {
+   text-align: right;
+}
+
+.popup-buttons button {
+   margin-left: 8px;
+}
