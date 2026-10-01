@@ -20,7 +20,10 @@ function getDistance(userLat, userLng, placeLat, placeLng) {
     let lngMiles = (userLng - placeLng) * 69 * Math.cos(placeLat * Math.PI / 180);
 
     // Use the Pythagorean theorem to get the straight line distance
-    return Math.sqrt(latMiles * latMiles + lngMiles * lngMiles);
+    let miles = Math.sqrt(latMiles * latMiles + lngMiles * lngMiles);
+
+    // Round to 2 decimal places so the number shown and the 0.5 check match
+    return Math.round(miles * 100) / 100;
 }
 
 // Check the latitude and longitude the user typed in

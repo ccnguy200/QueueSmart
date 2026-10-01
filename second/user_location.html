@@ -76,14 +76,16 @@
                 <!-- Option 2: Latitude: required, number between -90 and 90 -->
                 <div class="form-group">
                     <label for="latitude">Latitude: <span class="required">*</span></label>
-                    <input type="number" id="latitude" name="latitude" min="-90" max="90" step="any" placeholder="ex. 29.7213" required>
+                    <!-- Typing a new value hides the old result -->
+                    <input type="number" id="latitude" name="latitude" min="-90" max="90" step="any" placeholder="ex. 29.7213" required oninput="hideResult()">
                     <p class="hint">Required, between -90 and 90.</p>
                 </div>
 
                 <!-- Longitude: required, number between -180 and 180 -->
                 <div class="form-group">
                     <label for="longitude">Longitude: <span class="required">*</span></label>
-                    <input type="number" id="longitude" name="longitude" min="-180" max="180" step="any" placeholder="ex. -95.3425" required>
+                    <!-- Typing a new value hides the old result -->
+                    <input type="number" id="longitude" name="longitude" min="-180" max="180" step="any" placeholder="ex. -95.3425" required oninput="hideResult()">
                     <p class="hint">Required, between -180 and 180.</p>
                 </div>
 
@@ -113,6 +115,9 @@
             // Note: mock data, same as the admin screens
             const queueOpen = { "Advising": true, "Financial Aid": true, "Tutoring": false };
 
+            // Note: mock data, the user is already in the Academic Advising queue
+            const currentQueue = "Advising";
+
             // If we came from another page with a service picked, select it
             const params = new URLSearchParams(window.location.search);
             if (params.get("service") !== null) {
@@ -126,12 +131,19 @@
 
                 if (service === "") {
                     placeName.innerText = "Select a service above";
-                } else {
+                }
+                else {
                     placeName.innerText = places[service].name;
                 }
 
                 // A different service means the old result is no longer correct
+                hideResult();
+            }
+
+            // Hide the old result and turn off the Join Queue button
+            function hideResult() {
                 document.getElementById("result-card").style.display = "none";
+                document.getElementById("join-btn").disabled = true;
             }
 
             // Ask the browser for the user's location
@@ -194,13 +206,21 @@
                     message.innerText = "This queue is closed right now.";
                     joinButton.disabled = true;
                 }
+                // The user is already in this queue, so they should check in instead
+                else if (service === currentQueue) {
+                    badge.innerText = "In this queue";
+                    badge.className = "badge badge-waiting";
+                    message.innerText = "You are already in this queue. Go to Queue Status to check in when you arrive.";
+                    joinButton.disabled = true;
+                }
                 // Close enough: allow joining the queue
                 else if (miles <= allowedMiles) {
                     badge.innerText = "Within range";
                     badge.className = "badge badge-open";
                     message.innerText = "You are close enough to join this queue.";
                     joinButton.disabled = false;
-                } else {
+                }
+                else {
                     badge.innerText = "Too far";
                     badge.className = "badge badge-closed";
                     message.innerText = "Please move closer to " + place.name + " and check again.";
@@ -216,11 +236,12 @@
                 window.location.href = "join_queue.html?service=" + encodeURIComponent(service) + "&location=ok";
             }
 
-            // Show a validation error
+            // Show a validation error (and hide any old result)
             function showError(message) {
                 const error = document.getElementById("form-error");
                 error.innerText = message;
                 error.style.display = "block";
+                hideResult();
                 return false;
             }
 

@@ -142,9 +142,14 @@
             // Select the service the location was checked for
             if (checkedService === "Advising" || checkedService === "Financial Aid" || checkedService === "Tutoring") {
                 document.getElementById("service").value = checkedService;
-            } else {
+            }
+            else {
                 checkedService = "";
             }
+
+            // Each person can only be in one queue at a time
+            // Note: mock data, the user is already in the Academic Advising queue
+            const currentQueue = "Advising";
 
             // Queue size, size limit, and open/closed for each service
             // Note: mock data, same as the admin screens
@@ -193,7 +198,12 @@
                 const status = document.getElementById("location-status");
                 const link = document.getElementById("location-link");
 
-                if (checkedService !== "" && service === checkedService) {
+                if (service === currentQueue) {
+                    status.innerText = "You are already in the Academic Advising queue.";
+                    status.style.color = "#c0392b";
+                    link.style.display = "none";
+                }
+                else if (checkedService !== "" && service === checkedService) {
                     status.innerText = "Location checked. You are close enough to join this queue.";
                     status.style.color = "green";
                     link.style.display = "none";
@@ -215,6 +225,11 @@
                 const cardNumber = document.getElementById("card-number").value;
                 const expDate = document.getElementById("exp-date").value;
                 const cvv = document.getElementById("cvv").value;
+
+                // The user cannot join a queue they are already in
+                if (service === currentQueue) {
+                    return showError("You are already in the Academic Advising queue.");
+                }
 
                 // The queue must be open and not full
                 if (queueOpen[service] === false) {
@@ -283,11 +298,6 @@
                 }
 
                 // Each person can only be in one queue at a time
-                // Note: mock data, the user is already in the Academic Advising queue
-                const currentQueue = "Advising";
-                if (service === currentQueue) {
-                    return showError("You are already in the Academic Advising queue.");
-                }
                 if (!confirm("You are already in the Academic Advising queue. Leave it and join this queue instead?")) {
                     return false;
                 }
