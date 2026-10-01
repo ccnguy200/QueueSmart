@@ -6,6 +6,9 @@
 
         <!-- Link style sheet for uniform design and text -->
         <link rel="stylesheet" href="../styles.css">
+
+        <!-- Pop-up messages that match the site style -->
+        <script src="../popup.js"></script>
     </head>
     <!-- Body content -->
     <!-- When the page is shown (also after pressing Back), loadQueue() shows the selected queue again -->
@@ -265,10 +268,11 @@
                 const service = document.getElementById("service-select").value;
                 const queue = queues[service];
 
-                if (confirm("Remove " + queue[index].name + " from the queue?")) {
+                // Only remove after the admin clicks Yes
+                showConfirm("Remove " + queue[index].name + " from the queue?", function () {
                     queue.splice(index, 1);
                     renderQueue(service);
-                }
+                });
             }
 
             // Serve the next person (UI simulation)
@@ -277,20 +281,27 @@
                 const queue = queues[service];
 
                 if (queue.length === 0) {
-                    alert("This queue is empty.");
+                    showPopup("This queue is empty.");
                     return;
                 }
 
                 // Warn if the next person has not checked in yet
                 if (queue[0].arrived === false) {
-                    if (!confirm(queue[0].name + " has not checked in yet. Serve anyway?")) {
-                        return;
-                    }
+                    showConfirm(queue[0].name + " has not checked in yet. Serve anyway?", function () {
+                        serveFront(service);
+                    });
+                    return;
                 }
 
+                serveFront(service);
+            }
+
+            // Serve the person at the front of a queue
+            function serveFront(service) {
+                const queue = queues[service];
                 const served = queue.shift();
                 servedToday[service] = servedToday[service] + 1;
-                alert(served.name + " has been served.");
+                showPopup(served.name + " has been served.");
 
                 renderQueue(service);
             }
@@ -300,7 +311,7 @@
                 const service = document.getElementById("service-select").value;
                 const queue = queues[service];
 
-                alert(queue[0].name + " has been called again.");
+                showPopup(queue[0].name + " has been called again.");
             }
 
             // The person at the front did not show up: remove them and count a no-show
@@ -308,11 +319,12 @@
                 const service = document.getElementById("service-select").value;
                 const queue = queues[service];
 
-                if (confirm("Mark " + queue[0].name + " as a no-show? They will be removed from the queue.")) {
+                // Only remove after the admin clicks Yes
+                showConfirm("Mark " + queue[0].name + " as a no-show? They will be removed from the queue.", function () {
                     queue.shift();
                     noShowsToday[service] = noShowsToday[service] + 1;
                     renderQueue(service);
-                }
+                });
             }
 
             // Reset the mock data (useful for demos)

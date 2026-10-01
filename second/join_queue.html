@@ -6,6 +6,9 @@
 
         <!-- Link style sheet for uniform design and text -->
         <link rel="stylesheet" href="../styles.css">
+
+        <!-- Pop-up messages that match the site style -->
+        <script src="../popup.js"></script>
     </head>
     <!-- When the page is shown (also after pressing Back), updateWaitTime and showLocationStatus functions called -->
     <body onpageshow="updateWaitTime(); showLocationStatus()">
@@ -46,7 +49,7 @@
         <div class="card">
             <!-- Link to queue.html when after joining a queue -->
             <!-- When submitted, checkForm function called -->
-            <form action="queue_status.html" method="GET" onsubmit="return checkForm()">
+            <form id="join-form" action="queue_status.html" method="GET" onsubmit="return checkForm()">
 
                 <!-- Feature 1: Select a service -->
                 <div class="form-group">
@@ -150,6 +153,9 @@
             // Each person can only be in one queue at a time
             // Note: mock data, the user is already in the Academic Advising queue
             const currentQueue = "Advising";
+
+            // true after the user agrees to leave their current queue
+            let switchConfirmed = false;
 
             // Queue size, size limit, and open/closed for each service
             // Note: mock data, same as the admin screens
@@ -298,12 +304,20 @@
                 }
 
                 // Each person can only be in one queue at a time
-                if (!confirm("You are already in the Academic Advising queue. Leave it and join this queue instead?")) {
+                // Ask first, and send the form only if the user clicks Yes
+                if (!switchConfirmed) {
+                    showConfirm("You are already in the Academic Advising queue. Leave it and join this queue instead?", confirmSwitch);
                     return false;
                 }
 
                 clearError();
                 return true;
+            }
+
+            // confirmSwitch(): the user said yes, so send the form
+            function confirmSwitch() {
+                switchConfirmed = true;
+                document.getElementById("join-form").submit();
             }
 
             // isAllDigits(): returns true if the text only has the numbers 0-9

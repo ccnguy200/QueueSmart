@@ -6,6 +6,9 @@
 
         <!-- Link style sheet for uniform design and text -->
         <link rel="stylesheet" href="../styles.css">
+
+        <!-- Pop-up messages that match the site style -->
+        <script src="../popup.js"></script>
     </head>
     <!-- Body content -->
     <!-- When the page is shown (also after pressing Back), resetForm() puts the form back in create mode -->
@@ -284,10 +287,14 @@
 
             // Remove a service after confirmation
             function deleteService(id) {
-                if (!confirm("Delete this service? This cannot be undone.")) {
-                    return;
-                }
+                // Only delete after the admin clicks Yes
+                showConfirm("Delete this service? This cannot be undone.", function () {
+                    removeService(id);
+                });
+            }
 
+            // Take a service out of the list
+            function removeService(id) {
                 const remaining = [];
                 for (let i = 0; i < services.length; i++) {
                     if (services[i].id !== id) {

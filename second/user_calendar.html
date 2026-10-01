@@ -3,6 +3,9 @@
     <head>
         <title>User Calendar</title> 
         <link rel="stylesheet" href="../styles.css">      
+
+        <!-- Pop-up messages that match the site style -->
+        <script src="../popup.js"></script>
     </head>
     <body>
         <div>
@@ -327,7 +330,7 @@
 
                 events[editIndex].date = newDate;
                 events[editIndex].time = newTime;
-                alert(events[editIndex].title + " moved to " + newDate + " at " + formatTime(newTime) + ".");
+                showPopup(events[editIndex].title + " moved to " + newDate + " at " + formatTime(newTime) + ".");
 
                 closeReschedule();
                 createCalendar();
@@ -336,9 +339,14 @@
 
             // Cancel an appointment after confirmation
             function cancelEvent(index){
-                if (!confirm("Cancel your " + events[index].title + " appointment on " + events[index].date + "?")){
-                    return;
-                }
+                // Only cancel after the user clicks Yes
+                showConfirm("Cancel your " + events[index].title + " appointment on " + events[index].date + "?", function (){
+                    cancelConfirmed(index);
+                });
+            }
+
+            // Mark the appointment as canceled
+            function cancelConfirmed(index){
                 events[index].status = "Canceled";
 
                 // If this one was being rescheduled, close the form

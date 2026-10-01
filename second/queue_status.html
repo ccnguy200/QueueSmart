@@ -9,6 +9,9 @@
 
         <!-- Places and distance function for the location feature -->
         <script src="../location.js"></script>
+
+        <!-- Pop-up messages that match the site style -->
+        <script src="../popup.js"></script>
     </head>
     <!-- Body content -->
     <body>
@@ -309,11 +312,11 @@
             // Move to the next status (UI simulation)
             function advanceStatus() {
                 if (missed) {
-                    alert("You missed your turn. Please rejoin the queue first.");
+                    showPopup("You missed your turn. Please rejoin the queue first.");
                     return;
                 }
                 if (statuses[statusIndex] === "Served") {
-                    alert("You have already been served.");
+                    showPopup("You have already been served.");
                     return;
                 }
 
@@ -345,11 +348,11 @@
             // Ask for more time: move back one spot (only once)
             function runningLate() {
                 if (missed || statuses[statusIndex] === "Served") {
-                    alert("You cannot ask for more time right now.");
+                    showPopup("You cannot ask for more time right now.");
                     return;
                 }
                 if (usedLate) {
-                    alert("You can only ask for more time once.");
+                    showPopup("You can only ask for more time once.");
                     return;
                 }
 
@@ -370,15 +373,15 @@
             // The user did not show up when called (UI simulation)
             function missTurn() {
                 if (statuses[statusIndex] === "Served") {
-                    alert("You have already been served.");
+                    showPopup("You have already been served.");
                     return;
                 }
                 if (missed) {
-                    alert("You already missed your turn.");
+                    showPopup("You already missed your turn.");
                     return;
                 }
                 if (statusIndex !== 1) {
-                    alert("You can only miss your turn when it is almost your turn.");
+                    showPopup("You can only miss your turn when it is almost your turn.");
                     return;
                 }
 
