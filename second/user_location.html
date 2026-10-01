@@ -140,9 +140,9 @@
             }
 
             // The browser found the location: fill in the boxes and check it
-            function locationFound(position) {
-                document.getElementById("latitude").value = position.coords.latitude.toFixed(4);
-                document.getElementById("longitude").value = position.coords.longitude.toFixed(4);
+            function locationFound(myLocation) {
+                document.getElementById("latitude").value = myLocation.coords.latitude.toFixed(4);
+                document.getElementById("longitude").value = myLocation.coords.longitude.toFixed(4);
                 checkLocation();
             }
 
