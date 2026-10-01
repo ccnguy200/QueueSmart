@@ -43,6 +43,11 @@ function showPopup(message, afterOk) {
         }
     };
 
+    // Clicking anywhere on the pop-up keeps the keyboard on the OK button
+    overlay.onclick = function () {
+        okButton.focus();
+    };
+
     overlay.appendChild(box);
     document.body.appendChild(overlay);
 
@@ -103,6 +108,11 @@ function showConfirm(message, ifYes) {
         if (event.key === "Escape") {
             noButton.click();
         }
+    };
+
+    // Clicking anywhere on the pop-up keeps the keyboard on the No button
+    overlay.onclick = function () {
+        noButton.focus();
     };
 
     overlay.appendChild(box);
