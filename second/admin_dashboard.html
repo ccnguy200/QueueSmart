@@ -61,6 +61,7 @@
                         <th>Service</th>
                         <th>Priority</th>
                         <th>Queue Length</th>
+                        <th>Spots Left</th>
                         <th>Status</th>
                         <th>Quick Actions</th>
                     </tr>
@@ -84,9 +85,9 @@
         <script>
             // Mock services with their queue length and status
             const services = [
-                { id: 1, name: "Academic Advising", priority: "High", queueLength: 4, open: true },
-                { id: 2, name: "Financial Aid Office", priority: "Medium", queueLength: 2, open: true },
-                { id: 3, name: "Tutoring Services", priority: "Low", queueLength: 0, open: false }
+                { id: 1, name: "Academic Advising", priority: "High", queueLength: 4, maxSize: 10, open: true },
+                { id: 2, name: "Financial Aid Office", priority: "Medium", queueLength: 2, maxSize: 8, open: true },
+                { id: 3, name: "Tutoring Services", priority: "Low", queueLength: 0, maxSize: 5, open: false }
             ];
 
             // Build the service table and the summary counters
@@ -106,10 +107,18 @@
                         action = "Close";
                     }
 
+                    // Spots left before the queue is full
+                    let spotsLeft = service.maxSize - service.queueLength;
+                    let spots = spotsLeft + " of " + service.maxSize;
+                    if (spotsLeft <= 0) {
+                        spots = '<span class="badge badge-closed">Full</span>';
+                    }
+
                     row.innerHTML =
                         "<td>" + service.name + "</td>" +
                         "<td>" + service.priority + "</td>" +
                         "<td>" + service.queueLength + "</td>" +
+                        "<td>" + spots + "</td>" +
                         "<td>" + status + "</td>" +
                         '<td><button class="btn" onclick="toggleQueue(' + service.id + ')">' + action + "</button></td>";
 

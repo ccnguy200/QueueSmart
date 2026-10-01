@@ -70,6 +70,7 @@
                 <div class="info-box">
                     <p style="margin: 0;"><strong>Estimated Wait Time:</strong> <span id="est-wait">Select a service above</span></p>
                     <p style="margin: 5px 0 0 0;"><strong>Fee to Join Queue:</strong> <span id="service-fee">$0.00</span></p>
+                    <p style="margin: 5px 0 0 0;"><strong>Spots Left:</strong> <span id="spots-left">-</span></p>
                 </div>
 
                 <!-- Calendar Feature: User can view time slots and join a queue from calendar -->
@@ -145,10 +146,28 @@
                 checkedService = "";
             }
 
+            // Queue size, size limit, and open/closed for each service
+            // Note: mock data, same as the admin screens
+            const queueSize = { "Advising": 4, "Financial Aid": 2, "Tutoring": 0 };
+            const maxQueueSize = { "Advising": 10, "Financial Aid": 8, "Tutoring": 5 };
+            const queueOpen = { "Advising": true, "Financial Aid": true, "Tutoring": false };
+
             function updateWaitTime() {
                 const serviceSelected = document.getElementById("service").value;
                 const waitTime = document.getElementById("est-wait");
                 const queueFee = document.getElementById("service-fee");
+                const spotsLeft = document.getElementById("spots-left");
+
+                // Show how many spots are left (or that the queue is closed)
+                if (serviceSelected === "") {
+                    spotsLeft.innerText = "-";
+                }
+                else if (queueOpen[serviceSelected] === false) {
+                    spotsLeft.innerText = "This queue is closed right now";
+                }
+                else {
+                    spotsLeft.innerText = (maxQueueSize[serviceSelected] - queueSize[serviceSelected]) + " of " + maxQueueSize[serviceSelected];
+                }
 
                 if (serviceSelected === "Advising") {
                     waitTime.innerText = "30 minutes";
@@ -196,6 +215,14 @@
                 const cardNumber = document.getElementById("card-number").value;
                 const expDate = document.getElementById("exp-date").value;
                 const cvv = document.getElementById("cvv").value;
+
+                // The queue must be open and not full
+                if (queueOpen[service] === false) {
+                    return showError("This queue is closed right now.");
+                }
+                if (queueSize[service] >= maxQueueSize[service]) {
+                    return showError("This queue is full. Please try again later.");
+                }
 
                 // Location must be checked for this service first
                 if (checkedService === "" || service !== checkedService) {

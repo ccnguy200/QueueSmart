@@ -109,6 +109,10 @@
 
         <!-- Note: Mock Data used, no backend -->
         <script>
+            // Open or closed for each service
+            // Note: mock data, same as the admin screens
+            const queueOpen = { "Advising": true, "Financial Aid": true, "Tutoring": false };
+
             // If we came from another page with a service picked, select it
             const params = new URLSearchParams(window.location.search);
             if (params.get("service") !== null) {
@@ -183,8 +187,15 @@
 
                 document.getElementById("distance").innerText = miles.toFixed(2) + " miles from " + place.name;
 
+                // A closed queue cannot be joined, even when close enough
+                if (queueOpen[service] === false) {
+                    badge.innerText = "Closed";
+                    badge.className = "badge badge-closed";
+                    message.innerText = "This queue is closed right now.";
+                    joinButton.disabled = true;
+                }
                 // Close enough: allow joining the queue
-                if (miles <= allowedMiles) {
+                else if (miles <= allowedMiles) {
                     badge.innerText = "Within range";
                     badge.className = "badge badge-open";
                     message.innerText = "You are close enough to join this queue.";
