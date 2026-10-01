@@ -36,6 +36,12 @@
         <!-- Note: Mock Data used -->
         <h1>Admin Dashboard</h1>
 
+        <!-- Alert: shown when an open queue's wait is longer than the limit -->
+        <div class="card" id="wait-alert" style="display:none; border: 2px solid firebrick;">
+            <h3>Long Wait Alert</h3>
+            <ul id="wait-alert-list"></ul>
+        </div>
+
         <!-- Feature 1: Overview of the system -->
         <div class="summary">
             <div class="card">
@@ -49,6 +55,22 @@
             <div class="card">
                 <p>Open Queues</p>
                 <p class="number" id="stat-open">2</p>
+            </div>
+        </div>
+
+        <!-- Today's numbers (mock data) -->
+        <div class="summary">
+            <div class="card">
+                <p>Served Today</p>
+                <p class="number" id="stat-served">18</p>
+            </div>
+            <div class="card">
+                <p>Average Wait Today</p>
+                <p class="number" id="stat-avg-wait">13 min</p>
+            </div>
+            <div class="card">
+                <p>No-show Rate</p>
+                <p class="number" id="stat-noshow">10%</p>
             </div>
         </div>
 
@@ -74,7 +96,7 @@
         <!-- Feature 3: Quick actions -->
         <div class="card">
             <h3>Quick Actions</h3>
-            <p>Open or close a queue directly from the dashboard.</p>
+            <p>Create a new service or manage a queue.</p>
             <!-- Link to create a new service -->
             <a href="service_management.html" class="btn">Create a Service</a>
             <!-- Link to manage the queue for a selected service -->
@@ -89,6 +111,15 @@
                 { id: 2, name: "Financial Aid Office", priority: "Medium", queueLength: 2, maxSize: 8, open: true },
                 { id: 3, name: "Tutoring Services", priority: "Low", queueLength: 0, maxSize: 5, open: false }
             ];
+
+            // Minutes each person takes, per service (same as Queue Management)
+            const minutesPerPerson = { 1: 10, 2: 8, 3: 5 };
+
+            // Alert when the last person in an open queue waits longer than this
+            const waitLimit = 25;
+
+            // Today's numbers (mock data)
+            const today = { served: 18, noShows: 2, totalWaitMinutes: 240 };
 
             // Build the service table and the summary counters
             function renderServices() {
@@ -155,6 +186,47 @@
                 document.getElementById("stat-services").innerText = services.length;
                 document.getElementById("stat-waiting").innerText = waiting;
                 document.getElementById("stat-open").innerText = open;
+
+                // Average wait = total minutes waited / people served
+                const averageWait = Math.round(today.totalWaitMinutes / today.served);
+                document.getElementById("stat-served").innerText = today.served;
+                document.getElementById("stat-avg-wait").innerText = averageWait + " min";
+
+                // No-show rate = no-shows / everyone who was called
+                const noShowRate = Math.round(today.noShows / (today.served + today.noShows) * 100);
+                document.getElementById("stat-noshow").innerText = noShowRate + "%";
+
+                checkLongWaits();
+            }
+
+            // Show an alert for open queues where the last person waits too long
+            function checkLongWaits() {
+                const list = document.getElementById("wait-alert-list");
+                list.innerHTML = "";
+                let count = 0;
+
+                for (let i = 0; i < services.length; i++) {
+                    const service = services[i];
+
+                    // Wait for the last person = people ahead of them x minutes each
+                    let lastWait = 0;
+                    if (service.queueLength > 1) {
+                        lastWait = (service.queueLength - 1) * minutesPerPerson[service.id];
+                    }
+
+                    if (service.open === true && lastWait > waitLimit) {
+                        const item = document.createElement("li");
+                        item.innerText = service.name + ": the last person will wait about " + lastWait + " minutes (limit " + waitLimit + ").";
+                        list.appendChild(item);
+                        count = count + 1;
+                    }
+                }
+
+                if (count > 0) {
+                    document.getElementById("wait-alert").style.display = "block";
+                } else {
+                    document.getElementById("wait-alert").style.display = "none";
+                }
             }
 
             renderServices();
