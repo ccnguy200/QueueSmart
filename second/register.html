@@ -11,7 +11,7 @@
             <!-- Pop-up messages that match the site style -->
             <script src="../popup.js"></script>
             <script src="../script.js" defer></script>
-            <form onsubmit="return register()" method="POST">
+            <form onsubmit="register(); return false;" method="POST">
                 <p>
                     <label for="first">Username:</label>
                     <input type="email" name="first" id="first" size="10" required placeholder="example@email.com">

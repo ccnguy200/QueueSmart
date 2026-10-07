@@ -10,7 +10,7 @@
             <!-- Pop-up messages that match the site style -->
             <script src="../popup.js"></script>
             <script src="../script.js" defer></script>
-            <form onsubmit="return login()" method="POST">
+            <form onsubmit="login(); return false;" method="POST">
                 <p>
                     <label for="email">Username:</label>
                     <input type="email" name="email" id="email" size="10" required>
