@@ -147,5 +147,36 @@
             <p class="hint">Closed right now: Tutoring Services</p>
         </div>
 
+        <!-- script will fetch live queue status -->
+        <script>
+            async function fetchLiveStatus() {
+                try {
+                    const response = await fetch('/api/queue/status');
+                    const data = await response.json();
+
+                    if (data.success && data.queue.length > 0) {
+                        // Grab the latest queue entry
+                        const latestEntry = data.queue[data.queue.length - 1];
+
+                        const statusCard = document.querySelector('.card');
+                        if (statusCard) {
+                            statusCard.innerHTML = `
+                                <h3>Current Queue Status</h3>
+                                <p><strong>Service:</strong> ${latestEntry.service}</p>
+                                <p><strong>Position:</strong> #${latestEntry.position}</p>
+                                <p><strong>Current Wait Time:</strong> ${latestEntry.estimatedWaitTime} minutes</p>
+                                <a href="queue_status.html" class="btn">View Queue Status</a>
+                            `;
+                        }
+                    }
+                } catch (err) {
+                    console.log("Could not fetch live status.");
+                }
+            }
+
+            // will run when the page loads
+            window.addEventListener('DOMContentLoaded', fetchLiveStatus);
+        </script>
+
     </body>
 </html>

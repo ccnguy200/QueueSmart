@@ -48,8 +48,8 @@
         <!-- Features: select service, view estimated wait time, and join or leave a queue -->
         <div class="card">
             <!-- Link to queue.html when after joining a queue -->
-            <!-- When submitted, checkForm function called -->
-            <form id="join-form" action="queue_status.html" method="GET" onsubmit="return checkForm()">
+            <!-- When submitted, handleJoinQueue function called -->
+            <form id="join-form" onsubmit="return handleJoinQueue(event)">
 
                 <!-- Feature 1: Select a service -->
                 <div class="form-group">
@@ -114,7 +114,7 @@
                 <!-- User inputs cvv num next -->
                 <div class="form-group">
                     <label for="cvv">CVV: <span style="color:red;">*</span></label>
-                        <input type="password" id="cvv" placeholder="ex. 123" maxlength="3" required>
+                    <input type="password" id="cvv" placeholder="ex. 123" maxlength="3" required>
                 </div>
 
                 <!-- Form error message -->
@@ -143,7 +143,7 @@
             }
 
             // Select the service the location was checked for
-            if (checkedService === "Advising" || checkedService === "Financial Aid" || checkedService === "Tutoring") {
+            if (["Academic Advising", "Financial Aid Office", "Tutoring Services"].includes(checkedService)) {
                 document.getElementById("service").value = checkedService;
             }
             else {
@@ -152,16 +152,16 @@
 
             // Each person can only be in one queue at a time
             // Note: mock data, the user is already in the Academic Advising queue
-            const currentQueue = "Advising";
+            const currentQueue = "Academic Advising";
 
             // true after the user agrees to leave their current queue
             let switchConfirmed = false;
 
             // Queue size, size limit, and open/closed for each service
             // Note: mock data, same as the admin screens
-            const queueSize = { "Advising": 4, "Financial Aid": 2, "Tutoring": 0 };
-            const maxQueueSize = { "Advising": 10, "Financial Aid": 8, "Tutoring": 5 };
-            const queueOpen = { "Advising": true, "Financial Aid": true, "Tutoring": false };
+            const queueSize = { "Academic Advising": 4, "Financial Aid Office": 2, "Tutoring Services": 0 };
+            const maxQueueSize = { "Academic Advising": 10, "Financial Aid Office": 8, "Tutoring Services": 5 };
+            const queueOpen = { "Academic Advising": true, "Financial Aid Office": true, "Tutoring Services": false };
 
             function updateWaitTime() {
                 const serviceSelected = document.getElementById("service").value;
@@ -180,15 +180,15 @@
                     spotsLeft.innerText = (maxQueueSize[serviceSelected] - queueSize[serviceSelected]) + " of " + maxQueueSize[serviceSelected];
                 }
 
-                if (serviceSelected === "Advising") {
+                if (serviceSelected === "Academic Advising") {
                     waitTime.innerText = "30 minutes";
                     queueFee.innerText = "$20.00";
                 }
-                else if (serviceSelected === "Financial Aid") {
+                else if (serviceSelected === "Financial Aid Office") {
                     waitTime.innerText = "24 minutes";
                     queueFee.innerText = "$15.00";
                 }
-                else if (serviceSelected === "Tutoring") {
+                else if (serviceSelected === "Tutoring Services") {
                     waitTime.innerText = "5 minutes";
                     queueFee.innerText = "$10.00";
                 }
@@ -317,7 +317,49 @@
             // confirmSwitch(): the user said yes, so send the form
             function confirmSwitch() {
                 switchConfirmed = true;
-                document.getElementById("join-form").submit();
+                // handleJoinQueue submits to Express route, will dispatch event instead of submitting form
+                document.getElementById("join-form").dispatchEvent(new Event('submit', { cancelable: true }));
+            }
+
+            // handleJoinQueue(): will submit form data to backend
+            async function handleJoinQueue(event) {
+                event.preventDefault();
+
+                if (!checkForm()) {
+                    return false;
+                }
+
+                const payload = {
+                    userName: document.getElementById("card-name").value.trim(),
+                    service: document.getElementById("service").value,
+                    queueDate: document.getElementById("queue-date").value,
+                    queueTime: document.getElementById("queue-time").value,
+                    cardName: document.getElementById("card-name").value.trim(),
+                    cardNumber: document.getElementById("card-number").value,
+                    expDate: document.getElementById("exp-date").value,
+                    cvv: document.getElementById("cvv").value
+                };
+
+                try {
+                    const response = await fetch('/api/queue/join', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok && data.success) {
+                        alert("Successfully joined the queue!");
+                        window.location.href = "queue_status.html";
+                    } else {
+                        showError(data.message || "Failed to join queue.");
+                    }
+                } catch (err) {
+                    showError("Server Error. Could not connect to server.");
+                }
+
+                return false;
             }
 
             // isAllDigits(): returns true if the text only has the numbers 0-9

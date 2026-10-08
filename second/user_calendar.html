@@ -103,13 +103,42 @@
                 {date: "2026-11-26", time: "10:30", title: "Tutoring Services", status: "Confirmed"}
             ];
 
+            // function will load queue appts from backend data
+            async function loadBackendAppts() {
+                try {
+                    const response = await fetch('/api/queue/status');
+                    const data = await response.json();
+
+                    if (data.success && data.queue) {
+                        data.queue.forEach(item => {
+                            if (item.queueDate && item.queueTime) {
+                                // Avoid duplicate entries
+                                const exists = events.some(e => e.date === item.queueDate && e.title === item.service);
+                                if (!exists) {
+                                    events.push({
+                                        date: item.queueDate,
+                                        time: item.queueTime,
+                                        title: item.service,
+                                        status: "Confirmed"
+                                    });
+                                }
+                            }
+                        });
+                        createCalendar();
+                        getEvents();
+                    }
+                } catch (err) {
+                    console.log("Could not reach backend. Will see mock data.");
+                }
+            }
+
             // The appointment being rescheduled (-1 means none)
             let editIndex = -1;
 
             let month = new Date().getMonth();
             let year = new Date().getFullYear();
 
-            const months = [ "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+            const months = [ "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
             function createCalendar(){
                 document.getElementById("month-label").innerText = months[month] + " " + year;
@@ -395,6 +424,7 @@
 
             createCalendar();
             getEvents();
+            loadBackendAppts();
         </script>
     </body>
 </html>
