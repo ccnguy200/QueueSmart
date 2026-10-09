@@ -5,6 +5,7 @@ const bodyParser = require('body-parser');
 const path = require('path');
 
 const { router: userQueueRouter } = require('./routes/userQueue');
+const { router: notificationRouter } = require('./routes/notifications');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -32,6 +33,9 @@ app.get('/', function (req, res) {
 
 // Mount User Queue API Routes
 app.use('/api/queue', userQueueRouter);
+
+// Mount Notification API Routes
+app.use('/api/notifications', notificationRouter);
 
 
 // ***** LOGIN + REGISTER LOGIC BELOW *****
