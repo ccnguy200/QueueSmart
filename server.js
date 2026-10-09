@@ -17,10 +17,7 @@ app.use('/api/queue', userQueueRouter);
 
 
 // ***** LOGIN + REGISTER LOGIC BELOW *****
-const users = {
-    "admin@email.com": {password: "password", role: "admin"},
-    "user@email.com": {password: "password", role: "user"}
-};
+const users = {};
 
 function checkLogin(input, output) {
     const username = String(input.body.email || "").toLowerCase().trim();
