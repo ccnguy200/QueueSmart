@@ -1,5 +1,8 @@
 const API = "/api/auth";
 
+// Logout goes back to the login page, so opening login or register forgets the logged in user
+sessionStorage.removeItem("userName");
+
 async function login() {
     let username = document.getElementById("email").value.toLowerCase().trim();
     let password = document.getElementById("secret").value;
