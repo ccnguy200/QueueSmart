@@ -17,6 +17,7 @@ async function login() {
             showPopup("Incorrect Login.");
             return false;
         }
+        sessionStorage.setItem("userName", username);
         if (data.role == "admin") {
             showPopup("Login Successful", goToAdminDashboard);
         }
@@ -56,6 +57,7 @@ async function register() {
             showPopup(data.error || "Registration failed.");
             return false;
         }
+        sessionStorage.setItem("userName", first);
         if (data.role == "admin") {
             showPopup("Register Successful", goToAdminDashboard);
         }

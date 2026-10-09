@@ -341,6 +341,10 @@
                     cvv: document.getElementById("cvv").value
                 };
 
+                if (sessionStorage.getItem("userName") !== null) {
+                    payload.userName = sessionStorage.getItem("userName");
+                }
+
                 try {
                     const response = await fetch('/api/queue/join', {
                         method: 'POST',
