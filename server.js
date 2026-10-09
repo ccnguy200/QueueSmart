@@ -2,6 +2,7 @@
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const path = require('path');
 
 const { router: userQueueRouter } = require('./routes/userQueue');
 
@@ -11,6 +12,23 @@ const PORT = process.env.PORT || 3000;
 // Middleware setup
 app.use(cors());
 app.use(bodyParser.json());
+
+// Front-end pages (second/) and images, so the pages can call the API on the same server
+app.use('/second', express.static(path.join(__dirname, 'second')));
+app.use('/images', express.static(path.join(__dirname, 'images')));
+
+// Front-end files in the main folder (server.js, routes/ and tests/ are not shared)
+const frontEndFiles = ['index.html', 'styles.css', 'script.js', 'popup.js', 'location.js'];
+for (let i = 0; i < frontEndFiles.length; i++) {
+    app.get('/' + frontEndFiles[i], function (req, res) {
+        res.sendFile(frontEndFiles[i], { root: __dirname });
+    });
+}
+
+// Home page
+app.get('/', function (req, res) {
+    res.sendFile('index.html', { root: __dirname });
+});
 
 // Mount User Queue API Routes
 app.use('/api/queue', userQueueRouter);
@@ -97,7 +115,7 @@ app.post('/api/auth/register', checkRegister);
 
 
 // Health check route
-app.get('/', (req, res) => {
+app.get('/api/health', (req, res) => {
     res.send('QueueSmart API Server is running...');
 });
 

@@ -1,4 +1,4 @@
-const API = "http://localhost:3000/api/auth";
+const API = "/api/auth";
 
 async function login() {
     let username = document.getElementById("email").value.toLowerCase().trim();
