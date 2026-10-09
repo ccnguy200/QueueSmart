@@ -319,6 +319,7 @@
                 switchConfirmed = true;
                 // handleJoinQueue submits to Express route, will dispatch event instead of submitting form
                 document.getElementById("join-form").dispatchEvent(new Event('submit', { cancelable: true }));
+                switchConfirmed = false;
             }
 
             // handleJoinQueue(): will submit form data to backend
