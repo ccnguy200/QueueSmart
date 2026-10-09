@@ -350,8 +350,9 @@
                     const data = await response.json();
 
                     if (response.ok && data.success) {
-                        alert("Successfully joined the queue!");
-                        window.location.href = "queue_status.html";
+                        showPopup("Successfully joined the queue!", function () {
+                            window.location.href = "queue_status.html";
+                        });
                     } else {
                         showError(data.message || "Failed to join queue.");
                     }
