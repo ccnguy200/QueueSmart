@@ -1,6 +1,7 @@
 // Added export
 const express = require('express');
 const router = express.Router();
+const notifications = require('./notifications');
 
 // In-memory storage: will hold active queues while server is running
 const activeQueue = [];
@@ -64,6 +65,10 @@ router.post('/join', (req, res) => {
 
     // push new user entry into active queue array
     activeQueue.push(userEntry);
+
+    // send notifications: user joined the queue + anyone close to being served
+    notifications.notifyJoined(userEntry);
+    notifications.checkQueue(activeQueue);
 
     // return response once created along w/ updated queue data
     return res.status(201).json({
