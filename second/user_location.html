@@ -58,9 +58,9 @@
                     <!-- When a service is selected, showPlace() shows its building -->
                     <select id="service" name="service" required onchange="showPlace()">
                         <option value="" disabled selected>-- Please Select a Service --</option>
-                        <option value="Advising">Academic Advising</option>
-                        <option value="Financial Aid">Financial Aid Office</option>
-                        <option value="Tutoring">Tutoring Services</option>
+                        <option value="Academic Advising">Academic Advising</option>
+                        <option value="Financial Aid Office">Financial Aid Office</option>
+                        <option value="Tutoring Services">Tutoring Services</option>
                     </select>
                     <p class="hint">Location: <span id="place-name">Select a service above</span></p>
                 </div>
@@ -113,10 +113,10 @@
         <script>
             // Open or closed for each service
             // Note: mock data, same as the admin screens
-            const queueOpen = { "Advising": true, "Financial Aid": true, "Tutoring": false };
+            const queueOpen = { "Academic Advising": true, "Financial Aid Office": true, "Tutoring Services": false };
 
             // Note: mock data, the user is already in the Academic Advising queue
-            const currentQueue = "Advising";
+            const currentQueue = "Academic Advising";
 
             // If we came from another page with a service picked, select it
             const params = new URLSearchParams(window.location.search);

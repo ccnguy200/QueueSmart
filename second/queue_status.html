@@ -159,15 +159,15 @@
             // Note: mock data, the user starts in the Academic Advising queue
             const params = new URLSearchParams(window.location.search);
             let serviceKey = params.get("service");
-            if (serviceKey !== "Financial Aid" && serviceKey !== "Tutoring") {
-                serviceKey = "Advising";
+            if (serviceKey !== "Financial Aid Office" && serviceKey !== "Tutoring Services") {
+                serviceKey = "Academic Advising";
             }
 
             // Full name of each service
-            const serviceNames = { "Advising": "Academic Advising", "Financial Aid": "Financial Aid Office", "Tutoring": "Tutoring Services" };
+            const serviceNames = { "Academic Advising": "Academic Advising", "Financial Aid Office": "Financial Aid Office", "Tutoring Services": "Tutoring Services" };
 
             // Average minutes per person, per service (same as Queue Management)
-            const minutesEach = { "Advising": 10, "Financial Aid": 8, "Tutoring": 5 };
+            const minutesEach = { "Academic Advising": 10, "Financial Aid Office": 8, "Tutoring Services": 5 };
             const minutesPerPerson = minutesEach[serviceKey];
 
             // Current position in the queue (mock)

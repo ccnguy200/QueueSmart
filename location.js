@@ -3,9 +3,9 @@
 
 // Each service and the building where its queue is
 let places = {
-    "Advising": {name: "Student Service Center 1", latitude: 29.7213, longitude: -95.3425},
-    "Financial Aid": {name: "Welcome Center", latitude: 29.7236, longitude: -95.3436},
-    "Tutoring": {name: "M.D. Anderson Library", latitude: 29.7210, longitude: -95.3416}
+    "Academic Advising": {name: "Student Service Center 1", latitude: 29.7213, longitude: -95.3425},
+    "Financial Aid Office": {name: "Welcome Center", latitude: 29.7236, longitude: -95.3436},
+    "Tutoring Services": {name: "M.D. Anderson Library", latitude: 29.7210, longitude: -95.3416}
 };
 
 // The user must be this close (in miles) to join or check in
