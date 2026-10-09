@@ -74,5 +74,47 @@ router.post('/join', (req, res) => {
 });
 
 // route: leaving queue
+// will remove user from queue if user decides to cancel and leave spot
+router.post('/leave', (req, res) => {
+    // extraxt queue id
+    const { queueId } = req.body
 
-module.exports = {router};
+    // check to see if queue id was provided
+    if (!queueId) {
+        return res.status(400).json({
+            success: false,
+            message: "Queue ID is required."
+        });
+    }
+
+    // iterate through array and match entry
+    for (let i = 0; i < activeQueue.length; i++) {
+        if (activeQueue[i].id === queueId) {
+            const removed = activeQueue.splice(i, 1)[0];
+            
+            return res.status(200).json({
+                success: true,
+                message: "Left queue successfully.",
+                data: removed
+            });
+        }
+    }
+
+    // return message if no match was found for queue id
+    return res.status(404).json({ 
+        success: false, 
+        message: "Entry was not found." 
+    });
+});
+
+// route: get queue status
+// will retrive all active queue entries
+router.get('/status', (req, res) => {
+    return res.status(200).json({ 
+        success: true, 
+        queue: activeQueue 
+    });
+});
+
+// export router + activeQueue + service_Durations to give access to unit tests and server.js
+module.exports = {router, activeQueue, service_Durations};
