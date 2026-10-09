@@ -178,5 +178,52 @@
             window.addEventListener('DOMContentLoaded', fetchLiveStatus);
         </script>
 
+        <!-- script will load the user's notifications from the backend -->
+        <script>
+            async function loadNotifications() {
+                // nobody is logged in: keep the mock list above
+                const userName = sessionStorage.getItem("userName");
+                if (userName === null) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch("/api/notifications?userName=" + encodeURIComponent(userName));
+                    const data = await response.json();
+
+                    if (!response.ok || !data.success) {
+                        return;
+                    }
+
+                    // replace the mock list with the backend's notifications (newest first)
+                    const list = document.querySelector(".updates");
+                    list.innerHTML = "";
+
+                    if (data.notifications.length === 0) {
+                        const empty = document.createElement("li");
+                        empty.innerText = "No notifications yet.";
+                        list.appendChild(empty);
+                    }
+
+                    for (let i = 0; i < data.notifications.length; i++) {
+                        const item = document.createElement("li");
+                        item.innerText = data.notifications[i].message;
+
+                        const time = document.createElement("div");
+                        time.className = "time";
+                        time.innerText = data.notifications[i].time;
+                        item.appendChild(time);
+
+                        list.appendChild(item);
+                    }
+                } catch (err) {
+                    console.log("Could not load notifications.");
+                }
+            }
+
+            // will run when the page loads
+            loadNotifications();
+        </script>
+
     </body>
 </html>
