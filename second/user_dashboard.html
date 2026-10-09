@@ -165,7 +165,7 @@
                                 <p><strong>Service:</strong> ${latestEntry.service}</p>
                                 <p><strong>Position:</strong> #${latestEntry.position}</p>
                                 <p><strong>Current Wait Time:</strong> ${latestEntry.estimatedWaitTime} minutes</p>
-                                <a href="queue_status.html" class="btn">View Queue Status</a>
+                                <a href="queue_status.html?service=${encodeURIComponent(latestEntry.service)}" class="btn">View Queue Status</a>
                             `;
                         }
                     }

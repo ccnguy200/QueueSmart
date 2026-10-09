@@ -351,7 +351,7 @@
 
                     if (response.ok && data.success) {
                         showPopup("Successfully joined the queue!", function () {
-                            window.location.href = "queue_status.html";
+                            window.location.href = "queue_status.html?service=" + encodeURIComponent(payload.service);
                         });
                     } else {
                         showError(data.message || "Failed to join queue.");
