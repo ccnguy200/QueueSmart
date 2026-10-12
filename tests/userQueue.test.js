@@ -28,13 +28,76 @@ describe('Unit Tests for User Module', () => {
         expect(response.body.success).toBe(false);
     });
 
+    // test 2: will test join route and wait-time logic for first person joining an empty queue
+    // expected output: person should get position 1 and wait time = 0
+    test('First person to join queue will be at position 1 and have wait time = 0', async () => {
+        // valid test example
+        const validExample = {
+            userName: "Mary Jane",
+            service: "Academic Advising",
+            queueDate: "2026-10-12",
+            queueTime: "07:00",
+            cardName: "Mary Jane",
+            cardNumber: "1234567898765432",
+            expDate: "07/29",
+            cvv: "123"
+        }
+
+        // send request to api join route
+        const response = await sendRequest(importApp).post('/api/queue/join').send(validExample);
+
+        // expected output: status code 201 / position = 1 / wait time = 0
+        expect(response.statusCode).toBe(201);
+        expect(response.body.data.position).toBe(1);
+        expect(response.body.data.estimatedWaitTime).toBe(0);
+    });
+
+    // test 3: will test join route and wait-time logic for second person joining behind the first person
+    // expectec output: person should get position 2 and wait time = 30 (for academic advising in this case)
+    test('Second person to join queue will be at position 2 and have wait time = 30', async () => {
+        // add hypothetical first person to queue
+        activeQueue.push({
+            id: "First person",
+            service: "Academic Advising",
+            status: "waiting"
+        });
+
+        // valid test example
+        const validExample = {
+            userName: "Bob Jones",
+            service: "Academic Advising",
+            queueDate: "2026-10-12",
+            queueTime: "07:10",
+            cardName: "Bob Jones",
+            cardNumber: "9876543212345678",
+            expDate: "06/28",
+            cvv: "321"
+        };
+
+        // send request to api join route
+        const response = await sendRequest(importApp).post('/api/queue/join').send(validExample);
+
+        // expected output: status code 201 / position = 2 / wait time = 30
+        expect(response.statusCode).toBe(201);
+        expect(response.body.data.position).toBe(2);
+        expect(response.body.data.estimatedWaitTime).toBe(30); // rule based logic: (2-1)*30 = 30
+    });
+
+    // test 4: will test leave route where user leaves or cancels a queue
+    // expected output: user should be able to leave successfully and their entry should be removed from activeQueue
+    test('User leaves queue successfully', async () => {
+        // add hypothetical entry into queue
+        activeQueue.push({
+            id: "Person in queue",
+            service: "Academic Advising",
+            status: "waiting"
+        });
+
+        // send request to api leave route
+        const response = await sendRequest(importApp).post('/api/queue/leave').send({ queueId: "Person in queue" });
+
+        // expected output: status code 200 / entry should be removed from activeQueue
+        expect(response.statusCode).toBe(200);
+        expect(activeQueue.length).toBe(0);
+    });
 });
-
-// test 2: will test join route and wait-time logic for first person joining an empty queue
-// expected output: person should get position 1 and wait time = 0
-
-// test 3: will test join route and wait-time logic for second person joining behind the first person
-// expectec output: person should get position 2 and wait time = 30 (for academic advising in this case)
-
-// test 4: will test leave route where user leaves or cancels a queue
-// expected output: user should be able to leave successfully and their entry should be removed from activeQueue
