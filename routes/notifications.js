@@ -13,13 +13,16 @@ const MAX_USER_NAME_LENGTH = 100;
 // In-memory storage: every notification made so far
 let notifications = [];
 
+// Mock data: the notifications every user starts with
+let mockNotifications = [];
+
 // Queue entries that already got the "almost your turn" notification
 let almostNotified = [];
 
 // Id for the next notification
 let nextId = 1;
 
-// Mock data: notifications the default user already has (same as the A2 dashboard)
+// Mock data: notifications every user already has (same as the A2 dashboard)
 function addMockNotifications() {
     const mock = [
         ["calendar", "Your Financial Aid Office appointment on October 25 at 1:00 PM is confirmed.", "9:00 AM"],
@@ -29,9 +32,8 @@ function addMockNotifications() {
     ];
 
     for (let i = 0; i < mock.length; i++) {
-        notifications.push({
+        mockNotifications.push({
             id: nextId,
-            userName: "user@email.com",
             type: mock[i][0],
             message: mock[i][1],
             time: mock[i][2]
@@ -43,6 +45,7 @@ function addMockNotifications() {
 // Start over with only the mock notifications (also used by the unit tests)
 function resetNotifications() {
     notifications = [];
+    mockNotifications = [];
     almostNotified = [];
     nextId = 1;
     addMockNotifications();
@@ -192,11 +195,17 @@ function getNotifications(req, res) {
         });
     }
 
+    // The notifications made for this user
     const list = [];
     for (let i = notifications.length - 1; i >= 0; i--) {
         if (notifications[i].userName === userName) {
             list.push(notifications[i]);
         }
+    }
+
+    // Then the mock notifications every user starts with (they are older)
+    for (let i = mockNotifications.length - 1; i >= 0; i--) {
+        list.push(mockNotifications[i]);
     }
 
     return res.json({

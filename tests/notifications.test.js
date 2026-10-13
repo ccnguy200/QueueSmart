@@ -30,12 +30,15 @@ function makeEntry(userName, service, status) {
     };
 }
 
-// Get a user's notifications from the API
+// Get the notifications made for a user from the API
+// (the mock notifications every user starts with are left out)
 async function getMessages(userName) {
     const response = await request(app).get('/api/notifications').query({ userName: userName });
     const messages = [];
     for (let i = 0; i < response.body.notifications.length; i++) {
-        messages.push(response.body.notifications[i].message);
+        if (response.body.notifications[i].userName === userName) {
+            messages.push(response.body.notifications[i].message);
+        }
     }
     return messages;
 }
@@ -225,8 +228,8 @@ describe('GET /api/notifications', function () {
         expect(response.body.message).toBe("userName must be 100 characters or less.");
     });
 
-    test('the default user gets the mock notifications, newest first', async function () {
-        const response = await request(app).get('/api/notifications').query({ userName: "user@email.com" });
+    test('every user starts with the mock notifications, newest first', async function () {
+        const response = await request(app).get('/api/notifications').query({ userName: "new@email.com" });
 
         expect(response.status).toBe(200);
         expect(response.body.success).toBe(true);
@@ -235,19 +238,27 @@ describe('GET /api/notifications', function () {
         expect(response.body.notifications[3].time).toBe("9:00 AM");
     });
 
-    test('a user with no notifications gets an empty list', async function () {
-        const response = await request(app).get('/api/notifications').query({ userName: "new@email.com" });
+    test('notifications made for the user come before the mock ones', async function () {
+        notifications.addNotification("a@email.com", "joined", "Hello");
+        notifications.addNotification("b@email.com", "joined", "Not for a");
+        notifications.addNotification("a@email.com", "almost", "Hello again");
 
-        expect(response.status).toBe(200);
-        expect(response.body).toEqual({ success: true, notifications: [] });
+        const response = await request(app).get('/api/notifications').query({ userName: "a@email.com" });
+
+        expect(response.body.notifications.length).toBe(6);
+        expect(response.body.notifications[0].message).toBe("Hello again");
+        expect(response.body.notifications[1].message).toBe("Hello");
+        expect(response.body.notifications[2].message).toBe("Your position in the Academic Advising queue is now #3.");
     });
 
     test('resetNotifications keeps only the mock notifications', async function () {
         notifications.addNotification("a@email.com", "joined", "Hello");
         notifications.resetNotifications();
 
+        const response = await request(app).get('/api/notifications').query({ userName: "a@email.com" });
+
         expect(await getMessages("a@email.com")).toEqual([]);
-        expect((await getMessages("user@email.com")).length).toBe(4);
+        expect(response.body.notifications.length).toBe(4);
     });
 });
 

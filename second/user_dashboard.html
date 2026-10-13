@@ -211,12 +211,6 @@
                     const list = document.querySelector(".updates");
                     list.innerHTML = "";
 
-                    if (data.notifications.length === 0) {
-                        const empty = document.createElement("li");
-                        empty.innerText = "No notifications yet.";
-                        list.appendChild(empty);
-                    }
-
                     for (let i = 0; i < data.notifications.length; i++) {
                         const item = document.createElement("li");
                         item.innerText = data.notifications[i].message;
