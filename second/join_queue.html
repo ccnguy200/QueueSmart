@@ -152,7 +152,10 @@
 
             // Each person can only be in one queue at a time
             // Note: mock data, the user is already in the Academic Advising queue
-            const currentQueue = "Academic Advising";
+            let currentQueue = "Academic Advising";
+
+            // Id of the user's entry in the backend queue ("" = no entry)
+            let currentQueueId = "";
 
             // true after the user agrees to leave their current queue
             let switchConfirmed = false;
@@ -205,7 +208,7 @@
                 const link = document.getElementById("location-link");
 
                 if (service === currentQueue) {
-                    status.innerText = "You are already in the Academic Advising queue.";
+                    status.innerText = "You are already in the " + currentQueue + " queue.";
                     status.style.color = "#c0392b";
                     link.style.display = "none";
                 }
@@ -234,7 +237,7 @@
 
                 // The user cannot join a queue they are already in
                 if (service === currentQueue) {
-                    return showError("You are already in the Academic Advising queue.");
+                    return showError("You are already in the " + currentQueue + " queue.");
                 }
 
                 // The queue must be open and not full
@@ -305,8 +308,8 @@
 
                 // Each person can only be in one queue at a time
                 // Ask first, and send the form only if the user clicks Yes
-                if (!switchConfirmed) {
-                    showConfirm("You are already in the Academic Advising queue. Leave it and join this queue instead?", confirmSwitch);
+                if (currentQueue !== null && !switchConfirmed) {
+                    showConfirm("You are already in the " + currentQueue + " queue. Leave it and join this queue instead?", confirmSwitch);
                     return false;
                 }
 
@@ -355,6 +358,15 @@
                     const data = await response.json();
 
                     if (response.ok && data.success) {
+                        // the user agreed to switch: take them out of the queue they were in
+                        if (currentQueueId !== "") {
+                            await fetch('/api/queue/leave', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ queueId: currentQueueId })
+                            });
+                        }
+
                         showPopup("Successfully joined the queue!", function () {
                             window.location.href = "queue_status.html?service=" + encodeURIComponent(payload.service);
                         });
@@ -392,6 +404,73 @@
                 error.innerText = "";
                 error.style.display = "none";
             }
+
+            // loadCurrentQueue(): asks the backend which queue the logged in user is in
+            async function loadCurrentQueue() {
+                // Nobody is logged in: keep the mock data
+                const userName = sessionStorage.getItem("userName");
+                if (userName === null) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/api/queue/status');
+                    const data = await response.json();
+
+                    if (!response.ok || !data.success) {
+                        return;
+                    }
+
+                    // The user is not in a queue (null) unless their entry is found
+                    currentQueue = null;
+                    currentQueueId = "";
+                    for (let i = 0; i < data.queue.length; i++) {
+                        if (data.queue[i].userName === userName) {
+                            currentQueue = data.queue[i].service;
+                            currentQueueId = data.queue[i].id;
+                        }
+                    }
+
+                    showLocationStatus();
+                } catch (err) {
+                    console.log("Could not load the current queue.");
+                }
+            }
+
+            // leaveQueue(): takes the user out of the backend queue, then goes to the dashboard
+            async function leaveQueue(event) {
+                // No backend entry (mock data): the link just opens the dashboard
+                if (currentQueueId === "") {
+                    return;
+                }
+
+                event.preventDefault();
+
+                try {
+                    const response = await fetch('/api/queue/leave', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ queueId: currentQueueId })
+                    });
+
+                    const data = await response.json();
+
+                    // 404 means the entry is already gone, so the user is out of the queue too
+                    if ((response.ok && data.success) || response.status === 404) {
+                        window.location.href = "user_dashboard.html";
+                    } else {
+                        showError(data.message || "Failed to leave queue.");
+                    }
+                } catch (err) {
+                    showError("Server Error. Could not connect to server.");
+                }
+            }
+
+            // The Leave Queue link calls leaveQueue() first
+            document.querySelector(".btn-danger").addEventListener('click', leaveQueue);
+
+            // will run when the page is shown (also after the Back button)
+            window.addEventListener('pageshow', loadCurrentQueue);
         </script>
 
     </body>
