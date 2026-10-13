@@ -203,6 +203,12 @@
                 ["You joined the " + serviceNames[serviceKey] + " queue.", "10:02 AM"]
             ];
 
+            // The user's entry in the backend queue (null = not found, the page shows the mock data)
+            let myEntry = null;
+
+            // Minutes per person the backend uses for the wait time (same as routes/userQueue.js)
+            const backendMinutes = { "Academic Advising": 30, "Financial Aid Office": 24, "Tutoring Services": 5 };
+
             // Show the service and building names on the page
             document.getElementById("service-name").innerText = serviceNames[serviceKey];
             document.getElementById("checkin-hint").innerText = "When you arrive at " + place.name + ", check in so staff know you are here.";
@@ -234,7 +240,7 @@
                 } else if (missed) {
                     document.getElementById("wait-time").innerText = "-";
                 } else {
-                    document.getElementById("wait-time").innerText = (position * minutesPerPerson) + " minutes";
+                    document.getElementById("wait-time").innerText = waitMinutes() + " minutes";
                 }
 
                 const badge = document.getElementById("status-badge");
@@ -518,7 +524,107 @@
                 error.style.display = "none";
             }
 
+            // Wait time in minutes
+            // With a backend entry: people ahead x minutes per person (same rule as the backend)
+            function waitMinutes() {
+                if (myEntry !== null) {
+                    return (position - 1) * backendMinutes[serviceKey];
+                }
+                return position * minutesPerPerson;
+            }
+
+            // Get the user's position in this queue from the backend
+            async function loadMyQueue() {
+                // Nobody is logged in: keep the mock data
+                const userName = sessionStorage.getItem("userName");
+                if (userName === null) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/api/queue/status');
+                    const data = await response.json();
+
+                    if (!response.ok || !data.success) {
+                        return;
+                    }
+
+                    // Find this user's entry for this service (or the other service they are in)
+                    let otherService = "";
+                    for (let i = 0; i < data.queue.length; i++) {
+                        if (data.queue[i].userName === userName) {
+                            if (data.queue[i].service === serviceKey) {
+                                myEntry = data.queue[i];
+                            } else {
+                                otherService = data.queue[i].service;
+                            }
+                        }
+                    }
+
+                    if (myEntry === null) {
+                        // The user is in a different queue: show the page for that queue instead
+                        if (otherService === "Academic Advising" || otherService === "Financial Aid Office" || otherService === "Tutoring Services") {
+                            window.location.replace("queue_status.html?service=" + encodeURIComponent(otherService));
+                        }
+                        // The user is not in any queue: keep the mock data
+                        return;
+                    }
+
+                    position = myEntry.position;
+                    updates = [["Your position is now #" + position + ".", currentTime()]];
+
+                    // Close to the front: Almost Ready
+                    if (position <= notifyAtPosition) {
+                        statusIndex = 1;
+                    }
+
+                    renderStatus();
+                } catch (err) {
+                    console.log("Could not load queue status.");
+                }
+            }
+
+            // Leave Queue: remove the user's entry from the backend queue, then go to the dashboard
+            async function leaveQueue(event) {
+                // No backend entry (mock data): the link just opens the dashboard
+                if (myEntry === null) {
+                    return;
+                }
+
+                event.preventDefault();
+
+                try {
+                    const response = await fetch('/api/queue/leave', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ queueId: myEntry.id })
+                    });
+
+                    const data = await response.json();
+
+                    // 404 means the entry is already gone, so the user is out of the queue too
+                    if ((response.ok && data.success) || response.status === 404) {
+                        window.location.href = "user_dashboard.html";
+                    } else {
+                        showPopup(data.message || "Failed to leave queue.");
+                    }
+                } catch (err) {
+                    showPopup("Server Error. Could not connect to server.");
+                }
+            }
+
+            // The Leave Queue link calls leaveQueue() first
+            document.querySelector(".btn-danger").addEventListener('click', leaveQueue);
+
+            // After the Back button the old page is shown again: load it again so the position is not old
+            window.addEventListener('pageshow', function (event) {
+                if (event.persisted) {
+                    window.location.reload();
+                }
+            });
+
             renderStatus();
+            loadMyQueue();
         </script>
     </body>
 </html>
