@@ -109,6 +109,18 @@
                     const response = await fetch('/api/queue/status');
                     const data = await response.json();
 
+                    // only keep the entries of the user who is logged in
+                    const userName = sessionStorage.getItem("userName");
+                    if (data.success && userName !== null) {
+                        const myEntries = [];
+                        for (let i = 0; i < data.queue.length; i++) {
+                            if (data.queue[i].userName === userName) {
+                                myEntries.push(data.queue[i]);
+                            }
+                        }
+                        data.queue = myEntries;
+                    }
+
                     if (data.success && data.queue) {
                         data.queue.forEach(item => {
                             if (item.queueDate && item.queueTime) {
