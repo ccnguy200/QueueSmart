@@ -96,6 +96,20 @@ router.post('/leave', (req, res) => {
     for (let i = 0; i < activeQueue.length; i++) {
         if (activeQueue[i].id === queueId) {
             const removed = activeQueue.splice(i, 1)[0];
+
+            // update position + wait time for everyone still waiting in the same service
+            const duration = service_Durations[removed.service] || 15;
+            let newPosition = 1;
+            for (let j = 0; j < activeQueue.length; j++) {
+                if (activeQueue[j].service === removed.service && activeQueue[j].status === "waiting") {
+                    activeQueue[j].position = newPosition;
+                    activeQueue[j].estimatedWaitTime = (newPosition - 1) * duration;
+                    newPosition++;
+                }
+            }
+
+            // send notifications: anyone who is now close to being served
+            notifications.checkQueue(activeQueue);
             
             return res.status(200).json({
                 success: true,
