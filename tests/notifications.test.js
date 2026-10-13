@@ -283,3 +283,59 @@ describe('joining a queue sends notifications', function () {
         expect(await getMessages("a@email.com")).toEqual([]);
     });
 });
+
+describe('leaving a queue', function () {
+    test('the people behind move up, other services stay the same', async function () {
+        const first = await request(app).post('/api/queue/join').send(joinRequest("a@email.com", "Academic Advising"));
+        await request(app).post('/api/queue/join').send(joinRequest("b@email.com", "Academic Advising"));
+        await request(app).post('/api/queue/join').send(joinRequest("d@email.com", "Tutoring Services"));
+        await request(app).post('/api/queue/join').send(joinRequest("c@email.com", "Academic Advising"));
+
+        const leave = await request(app).post('/api/queue/leave').send({ queueId: first.body.data.id });
+        const status = await request(app).get('/api/queue/status');
+
+        expect(leave.status).toBe(200);
+        expect(status.body.queue.length).toBe(3);
+
+        // b is now #1 and c is now #2 in Academic Advising
+        expect(status.body.queue[0].userName).toBe("b@email.com");
+        expect(status.body.queue[0].position).toBe(1);
+        expect(status.body.queue[0].estimatedWaitTime).toBe(0);
+        expect(status.body.queue[2].userName).toBe("c@email.com");
+        expect(status.body.queue[2].position).toBe(2);
+        expect(status.body.queue[2].estimatedWaitTime).toBe(30);
+
+        // d is still #1 in Tutoring Services
+        expect(status.body.queue[1].userName).toBe("d@email.com");
+        expect(status.body.queue[1].position).toBe(1);
+    });
+
+    test('a service without a set duration uses 15 minutes', async function () {
+        const first = await request(app).post('/api/queue/join').send(joinRequest("a@email.com", "Library Help"));
+        await request(app).post('/api/queue/join').send(joinRequest("b@email.com", "Library Help"));
+        await request(app).post('/api/queue/join').send(joinRequest("c@email.com", "Library Help"));
+
+        await request(app).post('/api/queue/leave').send({ queueId: first.body.data.id });
+        const status = await request(app).get('/api/queue/status');
+
+        expect(status.body.queue[1].position).toBe(2);
+        expect(status.body.queue[1].estimatedWaitTime).toBe(15);
+    });
+
+    test('the next person is told it is almost their turn', async function () {
+        const first = await request(app).post('/api/queue/join').send(joinRequest("a@email.com", "Academic Advising"));
+        await request(app).post('/api/queue/join').send(joinRequest("b@email.com", "Academic Advising"));
+        await request(app).post('/api/queue/join').send(joinRequest("c@email.com", "Academic Advising"));
+
+        expect(await getMessages("c@email.com")).toEqual([
+            "You joined the Academic Advising queue. You are #3. Estimated wait: 60 minutes."
+        ]);
+
+        await request(app).post('/api/queue/leave').send({ queueId: first.body.data.id });
+
+        expect(await getMessages("c@email.com")).toEqual([
+            "It's almost your turn! You are #2 in the Academic Advising queue.",
+            "You joined the Academic Advising queue. You are #3. Estimated wait: 60 minutes."
+        ]);
+    });
+});
