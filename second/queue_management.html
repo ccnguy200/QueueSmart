@@ -40,7 +40,6 @@
         </header>
 
         <!-- Queue Management Screen -->
-        <!-- Note: Mock Data used, actions are UI simulations only -->
         <h1>Queue Management</h1>
 
         <!-- Feature 1: View the queue for a selected service -->
@@ -50,9 +49,9 @@
                 <label for="service-select">Service:</label>
                 <!-- When a service is selected, loadQueue() shows its queue -->
                 <select id="service-select" onchange="loadQueue()">
-                    <option value="Advising">Academic Advising</option>
-                    <option value="Financial Aid">Financial Aid Office</option>
-                    <option value="Tutoring">Tutoring Services</option>
+                    <option value="Academic Advising">Academic Advising</option>
+                    <option value="Financial Aid Office">Financial Aid Office</option>
+                    <option value="Tutoring Services">Tutoring Services</option>
                 </select>
             </div>
 
@@ -87,7 +86,6 @@
                         <th>Position</th>
                         <th>Name</th>
                         <th>Status</th>
-                        <th>Checked In</th>
                         <th>Estimated Wait</th>
                         <th>Actions</th>
                     </tr>
@@ -99,61 +97,44 @@
             <!-- Shown when the selected queue is empty -->
             <p class="empty" id="empty-message" style="display:none;">No one is currently waiting in this queue.</p>
 
-            <!-- Feature 3: Serve the next user (UI simulation) -->
+            <!-- Feature 3: Serve the next user -->
             <div class="toolbar">
                 <button class="btn" onclick="serveNext()">Serve Next User</button>
                 <button class="btn-secondary" onclick="resetDemo()">Reset Demo Data</button>
             </div>
         </div>
 
-        <!-- Note: Mock Data used, no backend -->
         <script>
-            // Average minutes each person takes to be served, per service
-            const serviceDurations = {
-                "Advising": 10,
-                "Financial Aid": 8,
-                "Tutoring": 5
-            };
+            // The queue entries for the selected service, loaded from the backend
+            let queue = [];
 
-            // Mock queues for each service
-            // arrived: true when the person checked in at the building (Location feature)
-            const queues = {
-                "Advising": [
-                    { name: "Maria Lopez", arrived: true },
-                    { name: "David Kim", arrived: false },
-                    { name: "Aisha Rahman", arrived: true },
-                    { name: "Tom Becker", arrived: false }
-                ],
-                "Financial Aid": [
-                    { name: "Grace Chen", arrived: false },
-                    { name: "Noah Patel", arrived: true }
-                ],
-                "Tutoring": []
-            };
-
-            // Number of people served today, per service (adds up to the Admin Dashboard numbers)
-            let servedToday = { "Advising": 10, "Financial Aid": 8, "Tutoring": 0 };
-
-            // Number of people who did not show up today, per service
-            let noShowsToday = { "Advising": 1, "Financial Aid": 1, "Tutoring": 0 };
-
-            // Show the queue for the selected service
-            function loadQueue() {
+            // Load the queue for the selected service and show it
+            async function loadQueue() {
                 const service = document.getElementById("service-select").value;
                 document.getElementById("queue-title").innerText = service + " Queue";
-                renderQueue(service);
+
+                const response = await fetch('/api/queue/status');
+                const data = await response.json();
+
+                // Keep only the waiting entries for the selected service, in order
+                queue = [];
+                for (let i = 0; i < data.queue.length; i++) {
+                    if (data.queue[i].service === service && data.queue[i].status === "waiting") {
+                        queue.push(data.queue[i]);
+                    }
+                }
+
+                renderQueue();
+                updateSummary(service);
             }
 
-            // Build the queue table for a service
-            function renderQueue(service) {
-                const queue = queues[service];
+            // Build the queue table
+            function renderQueue() {
                 const body = document.getElementById("queue-body");
                 const emptyMessage = document.getElementById("empty-message");
-                const duration = serviceDurations[service];
 
                 body.innerHTML = "";
 
-                // Show the empty message when nobody is waiting
                 if (queue.length === 0) {
                     emptyMessage.style.display = "block";
                 } else {
@@ -162,8 +143,6 @@
 
                 for (let i = 0; i < queue.length; i++) {
                     const person = queue[i];
-                    const position = i + 1;
-                    const wait = i * duration;
                     const row = document.createElement("tr");
 
                     // Highlight the person who is next to be served
@@ -177,10 +156,14 @@
                         status = '<span class="badge badge-ready">Almost Ready</span>';
                     }
 
-                    // Checked in at the building or not yet
-                    let arrived = '<span class="badge badge-waiting">Not here yet</span>';
-                    if (person.arrived === true) {
-                        arrived = '<span class="badge badge-served">Arrived</span>';
+                    // Disable the arrows at the ends of the queue
+                    let upDisabled = "";
+                    if (i === 0) {
+                        upDisabled = " disabled";
+                    }
+                    let downDisabled = "";
+                    if (i === queue.length - 1) {
+                        downDisabled = " disabled";
                     }
 
                     // The person at the front can be called again or marked as a no-show
@@ -191,143 +174,140 @@
                             '<button class="btn-danger" onclick="markNoShow()">No-show</button>';
                     }
 
-                    // Disable the arrows at the ends of the queue
-                    let upDisabled = "";
-                    if (i === 0) {
-                        upDisabled = " disabled";
-                    }
-
-                    let downDisabled = "";
-                    if (i === queue.length - 1) {
-                        downDisabled = " disabled";
-                    }
-
                     row.innerHTML =
-                        "<td>" + position + "</td>" +
-                        "<td>" + person.name + "</td>" +
+                        "<td>" + person.position + "</td>" +
+                        "<td>" + person.userName + "</td>" +
                         "<td>" + status + "</td>" +
-                        "<td>" + arrived + "</td>" +
-                        "<td>" + wait + " min</td>" +
+                        "<td>" + person.estimatedWaitTime + " min</td>" +
                         '<td class="actions">' +
-                            '<button class="btn-secondary" onclick="moveUp(' + i + ')"' + upDisabled + ">&uarr;</button>" +
-                            '<button class="btn-secondary" onclick="moveDown(' + i + ')"' + downDisabled + ">&darr;</button>" +
-                            '<button class="btn-danger" onclick="removeUser(' + i + ')">Remove</button>' +
+                            '<button class="btn-secondary" onclick="moveUp(\'' + person.id + '\')"' + upDisabled + ">&uarr;</button>" +
+                            '<button class="btn-secondary" onclick="moveDown(\'' + person.id + '\')"' + downDisabled + ">&darr;</button>" +
+                            '<button class="btn-danger" onclick="removeUser(\'' + person.id + '\')">Remove</button>' +
                             frontButtons +
                         "</td>";
 
                     body.appendChild(row);
                 }
-
-                updateSummary(service);
             }
 
-            // Update the summary numbers for a service
+            // Update the summary numbers for the selected service
             function updateSummary(service) {
-                const queue = queues[service];
-                const duration = serviceDurations[service];
-
                 let lastWait = 0;
-                if (queue.length > 1) {
-                    lastWait = (queue.length - 1) * duration;
+                if (queue.length > 0) {
+                    lastWait = queue[queue.length - 1].estimatedWaitTime;
                 }
 
                 document.getElementById("stat-length").innerText = queue.length;
                 document.getElementById("stat-wait").innerText = lastWait + " min";
-                document.getElementById("stat-served").innerText = servedToday[service];
-                document.getElementById("stat-noshow").innerText = noShowsToday[service];
+
+                loadHistoryCounts(service);
+            }
+
+            // Count served and no-show records for a service from the history
+            async function loadHistoryCounts(service) {
+                const response = await fetch('/api/history');
+                const data = await response.json();
+
+                let served = 0;
+                let noShows = 0;
+
+                for (let i = 0; i < data.history.length; i++) {
+                    if (data.history[i].service !== service) {
+                        continue;
+                    }
+                    if (data.history[i].outcome === "Served") {
+                        served = served + 1;
+                    } else if (data.history[i].outcome === "Missed") {
+                        noShows = noShows + 1;
+                    }
+                }
+
+                document.getElementById("stat-served").innerText = served;
+                document.getElementById("stat-noshow").innerText = noShows;
             }
 
             // Move a person up in the queue
-            function moveUp(index) {
-                const service = document.getElementById("service-select").value;
-                const queue = queues[service];
-
-                if (index > 0) {
-                    const temp = queue[index];
-                    queue[index] = queue[index - 1];
-                    queue[index - 1] = temp;
-                    renderQueue(service);
-                }
+            function moveUp(id) {
+                reorder(id, "up");
             }
 
             // Move a person down in the queue
-            function moveDown(index) {
-                const service = document.getElementById("service-select").value;
-                const queue = queues[service];
-
-                if (index < queue.length - 1) {
-                    const temp = queue[index];
-                    queue[index] = queue[index + 1];
-                    queue[index + 1] = temp;
-                    renderQueue(service);
-                }
+            function moveDown(id) {
+                reorder(id, "down");
             }
 
-            // Remove a person from the queue
-            function removeUser(index) {
-                const service = document.getElementById("service-select").value;
-                const queue = queues[service];
+            // Reorder a person on the backend and reload
+            async function reorder(id, direction) {
+                await fetch('/api/admin/queue/reorder', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ queueId: id, direction: direction })
+                });
+                await loadQueue();
+            }
 
-                // Only remove after the admin clicks Yes
-                showConfirm("Remove " + queue[index].name + " from the queue?", function () {
-                    queue.splice(index, 1);
-                    renderQueue(service);
+            // Remove a person from the queue after confirmation
+            function removeUser(id) {
+                let name = "this person";
+                for (let i = 0; i < queue.length; i++) {
+                    if (queue[i].id === id) {
+                        name = queue[i].userName;
+                    }
+                }
+
+                showConfirm("Remove " + name + " from the queue?", async function () {
+                    await fetch('/api/admin/queue/' + id, { method: 'DELETE' });
+                    await loadQueue();
                 });
             }
 
-            // Serve the next person (UI simulation)
-            function serveNext() {
-                const service = document.getElementById("service-select").value;
-                const queue = queues[service];
-
+            // Serve the next person
+            async function serveNext() {
                 if (queue.length === 0) {
                     showPopup("This queue is empty.");
                     return;
                 }
 
-                // Warn if the next person has not checked in yet
-                if (queue[0].arrived === false) {
-                    showConfirm(queue[0].name + " has not checked in yet. Serve anyway?", function () {
-                        serveFront(service);
-                    });
+                const service = document.getElementById("service-select").value;
+
+                const response = await fetch('/api/admin/queue/serve', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ service: service })
+                });
+                const data = await response.json();
+
+                showPopup(data.message);
+                await loadQueue();
+            }
+
+            // Call the person at the front again (no backend change)
+            function callAgain() {
+                if (queue.length === 0) {
+                    return;
+                }
+                showPopup(queue[0].userName + " has been called again.");
+            }
+
+            // Mark the person at the front as a no-show
+            function markNoShow() {
+                if (queue.length === 0) {
                     return;
                 }
 
-                serveFront(service);
-            }
-
-            // Serve the person at the front of a queue
-            function serveFront(service) {
-                const queue = queues[service];
-                const served = queue.shift();
-                servedToday[service] = servedToday[service] + 1;
-                showPopup(served.name + " has been served.");
-
-                renderQueue(service);
-            }
-
-            // Call the person at the front again (UI simulation)
-            function callAgain() {
                 const service = document.getElementById("service-select").value;
-                const queue = queues[service];
 
-                showPopup(queue[0].name + " has been called again.");
-            }
-
-            // The person at the front did not show up: remove them and count a no-show
-            function markNoShow() {
-                const service = document.getElementById("service-select").value;
-                const queue = queues[service];
-
-                // Only remove after the admin clicks Yes
-                showConfirm("Mark " + queue[0].name + " as a no-show? They will be removed from the queue.", function () {
-                    queue.shift();
-                    noShowsToday[service] = noShowsToday[service] + 1;
-                    renderQueue(service);
+                showConfirm("Mark " + queue[0].userName + " as a no-show? They will be removed from the queue.", async function () {
+                    await fetch('/api/admin/queue/no-show', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ service: service })
+                    });
+                    await loadQueue();
                 });
             }
 
-            // Reset the mock data (useful for demos)
+            // Reload the page to reset the mock data
             function resetDemo() {
                 location.reload();
             }
