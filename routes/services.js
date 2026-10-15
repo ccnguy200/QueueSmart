@@ -20,9 +20,9 @@ let nextId = 1;
 // Mock data: the services from the A2 Service Management screen
 function addMockServices() {
     const mock = [
-        { name: "Academic Advising", description: "Talk to an advisor about course selection.", duration: 30, priority: "High" },
-        { name: "Financial Aid Office", description: "Help with FAFSA, scholarships, and aid questions.", duration: 15, priority: "Medium" },
-        { name: "Tutoring Services", description: "One-on-one tutoring for selected courses.", duration: 5, priority: "Low" }
+        { name: "Academic Advising", description: "Talk to an advisor about course selection.", duration: 30, priority: "High", open: true },
+        { name: "Financial Aid Office", description: "Help with FAFSA, scholarships, and aid questions.", duration: 15, priority: "Medium", open: true },
+        { name: "Tutoring Services", description: "One-on-one tutoring for selected courses.", duration: 5, priority: "Low", open: true }
     ];
 
     for (let i = 0; i < mock.length; i++) {
@@ -31,7 +31,8 @@ function addMockServices() {
             name: mock[i].name,
             description: mock[i].description,
             duration: mock[i].duration,
-            priority: mock[i].priority
+            priority: mock[i].priority,
+            open: mock[i].open
         });
         nextId++;
     }
@@ -82,9 +83,31 @@ function findService(id) {
     return null;
 }
 
+// true if a service's queue is open (unknown services count as open)
+function isServiceOpen(serviceName) {
+    for (let i = 0; i < services.length; i++) {
+        if (services[i].name === serviceName) {
+            return services[i].open !== false;
+        }
+    }
+    return true;
+}
+
 // route: list every service
 router.get('/', function (req, res) {
     return res.json({ success: true, services: services });
+});
+
+// route: get a single service by id
+router.get('/:id', function (req, res) {
+    const id = Number(req.params.id);
+    const service = findService(id);
+
+    if (service === null) {
+        return res.status(404).json({ success: false, message: "Service not found." });
+    }
+
+    return res.json({ success: true, service: service });
 });
 
 // route: create a service
@@ -104,7 +127,8 @@ router.post('/', function (req, res) {
         name: String(name).trim(),
         description: String(description).trim(),
         duration: Number(duration),
-        priority: priority
+        priority: priority,
+        open: true
     };
     nextId++;
     services.push(service);
@@ -153,6 +177,32 @@ router.delete('/:id', function (req, res) {
     return res.status(404).json({ success: false, message: "Service not found." });
 });
 
+// route: open a service's queue (lets users join again)
+router.post('/:id/open', function (req, res) {
+    const id = Number(req.params.id);
+    const service = findService(id);
+
+    if (service === null) {
+        return res.status(404).json({ success: false, message: "Service not found." });
+    }
+
+    service.open = true;
+    return res.json({ success: true, message: "Service queue opened.", service: service });
+});
+
+// route: close a service's queue (stops new users from joining)
+router.post('/:id/close', function (req, res) {
+    const id = Number(req.params.id);
+    const service = findService(id);
+
+    if (service === null) {
+        return res.status(404).json({ success: false, message: "Service not found." });
+    }
+
+    service.open = false;
+    return res.json({ success: true, message: "Service queue closed.", service: service });
+});
+
 resetServices();
 
 module.exports = {
@@ -160,5 +210,6 @@ module.exports = {
     services: services,
     checkService: checkService,
     resetServices: resetServices,
+    isServiceOpen: isServiceOpen,
     PRIORITY_LEVELS: PRIORITY_LEVELS
 };
