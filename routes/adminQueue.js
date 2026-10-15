@@ -192,6 +192,30 @@ router.post('/reorder', function (req, res) {
     return res.json({ success: true, message: "Queue reordered.", queue: activeQueue });
 });
 
+// route: remove a user from the queue by id (any position)
+router.delete('/:id', function (req, res) {
+    const queueId = req.params.id;
+
+    let index = -1;
+    for (let i = 0; i < activeQueue.length; i++) {
+        if (activeQueue[i].id === queueId) {
+            index = i;
+            break;
+        }
+    }
+
+    if (index === -1) {
+        return res.status(404).json({ success: false, message: "Entry was not found." });
+    }
+
+    const removed = activeQueue.splice(index, 1)[0];
+    history.recordEntry(removed.userName, removed.service, "Left Queue", removed.estimatedWaitTime);
+    recalculate(removed.service);
+    notifications.checkQueue(activeQueue);
+
+    return res.json({ success: true, message: removed.userName + " was removed from the queue.", user: removed });
+});
+
 module.exports = {
     router: router,
     priorityOf: priorityOf,
