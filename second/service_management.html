@@ -12,7 +12,7 @@
     </head>
     <!-- Body content -->
     <!-- When the page is shown (also after pressing Back), resetForm() puts the form back in create mode -->
-    <body onpageshow="resetForm()">
+    <body onpageshow="resetForm(); loadServices()">
         <header>
             <h2>QueueSmart &mdash; Admin</h2>
             <!-- Navigation to other admin files -->
@@ -119,37 +119,19 @@
         </div>
 
         <!-- Note: Mock Data used, no backend -->
-        <script>
-            // Mock services
-            let services = [
-                {
-                    id: 1,
-                    name: "Academic Advising",
-                    description: "Talk to an advisor about course selection.",
-                    duration: 30,
-                    maxSize: 10,
-                    priority: "High"
-                },
-                {
-                    id: 2,
-                    name: "Financial Aid Office",
-                    description: "Help with FAFSA, scholarships, and aid questions.",
-                    duration: 15,
-                    maxSize: 8,
-                    priority: "Medium"
-                },
-                {
-                    id: 3,
-                    name: "Tutoring Services",
-                    description: "One-on-one tutoring for selected courses.",
-                    duration: 5,
-                    maxSize: 5,
-                    priority: "Low"
-                }
-            ];
+        <script>            // The services loaded from the backend
+            let services = [];
 
             // The service being edited (null means create mode)
             let editingId = null;
+
+            // Load the services from the backend and show them in the table
+            async function loadServices() {
+                const response = await fetch('/api/services');
+                const data = await response.json();
+                services = data.services;
+                renderServices();
+            }
 
             // Build the services table
             function renderServices() {
@@ -181,8 +163,8 @@
                 return '<span class="badge badge-' + level + '">' + priority + "</span>";
             }
 
-            // Validate the form and create or update a service
-            function saveService(event) {
+            // Validate the form and create or update the service on the backend
+            async function saveService(event) {
                 event.preventDefault();
 
                 const name = document.getElementById("service-name").value.trim();
@@ -200,7 +182,6 @@
                 if (name.length > 100) {
                     return showError("Service Name must be 100 characters or fewer.");
                 }
-                // < and > are not allowed because the table would read them as HTML
                 if (name.includes("<") || name.includes(">")) {
                     return showError("Service Name cannot contain < or >.");
                 }
@@ -213,7 +194,6 @@
                 if (durationText === "" || isNaN(duration) || duration < 1 || duration > 480) {
                     return showError("Expected Duration must be between 1 and 480 minutes.");
                 }
-                // Max Queue Size must be a whole number
                 if (maxText === "" || isNaN(maxSize) || maxSize < 1 || maxSize > 200 || Math.floor(maxSize) !== maxSize) {
                     return showError("Max Queue Size must be a whole number between 1 and 200.");
                 }
@@ -223,37 +203,35 @@
 
                 clearError();
 
-                if (editingId === null) {
-                    // Create a new service with the next available id
-                    let newId = 1;
-                    for (let i = 0; i < services.length; i++) {
-                        if (services[i].id >= newId) {
-                            newId = services[i].id + 1;
-                        }
-                    }
+                const payload = {
+                    name: name,
+                    description: description,
+                    duration: duration,
+                    maxSize: maxSize,
+                    priority: priority
+                };
 
-                    services.push({
-                        id: newId,
-                        name: name,
-                        description: description,
-                        duration: duration,
-                        maxSize: maxSize,
-                        priority: priority
+                let response;
+                if (editingId === null) {
+                    response = await fetch('/api/services', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
                     });
                 } else {
-                    // Update the service being edited
-                    for (let i = 0; i < services.length; i++) {
-                        if (services[i].id === editingId) {
-                            services[i].name = name;
-                            services[i].description = description;
-                            services[i].duration = duration;
-                            services[i].maxSize = maxSize;
-                            services[i].priority = priority;
-                        }
-                    }
+                    response = await fetch('/api/services/' + editingId, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
                 }
 
-                renderServices();
+                const data = await response.json();
+                if (!data.success) {
+                    return showError(data.message);
+                }
+
+                await loadServices();
                 resetForm();
             }
 
@@ -285,30 +263,22 @@
                 window.scrollTo(0, 0);
             }
 
-            // Remove a service after confirmation
+            // Delete a service after confirmation
             function deleteService(id) {
-                // Only delete after the admin clicks Yes
                 showConfirm("Delete this service? This cannot be undone.", function () {
                     removeService(id);
                 });
             }
 
-            // Take a service out of the list
-            function removeService(id) {
-                const remaining = [];
-                for (let i = 0; i < services.length; i++) {
-                    if (services[i].id !== id) {
-                        remaining.push(services[i]);
-                    }
-                }
-                services = remaining;
+            // Delete the service on the backend and reload the list
+            async function removeService(id) {
+                await fetch('/api/services/' + id, { method: 'DELETE' });
 
-                // If the deleted service was being edited, reset the form
                 if (editingId === id) {
                     resetForm();
                 }
 
-                renderServices();
+                await loadServices();
             }
 
             // Return the form to create mode
@@ -335,7 +305,7 @@
                 error.style.display = "none";
             }
 
-            renderServices();
+            loadServices();
         </script>
     </body>
 </html>

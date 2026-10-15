@@ -19,6 +19,7 @@ describe('Service Management Module', function () {
             name: "Career Center",
             description: "Resume and interview help.",
             duration: 20,
+            maxSize: 15,
             priority: "Medium"
         });
         expect(res.statusCode).toBe(201);
@@ -30,6 +31,7 @@ describe('Service Management Module', function () {
         const res = await request(app).post('/api/services').send({
             description: "No name here.",
             duration: 20,
+            maxSize: 15,
             priority: "Low"
         });
         expect(res.statusCode).toBe(400);
@@ -40,6 +42,7 @@ describe('Service Management Module', function () {
             name: "x".repeat(101),
             description: "Too long.",
             duration: 20,
+            maxSize: 15,
             priority: "Low"
         });
         expect(res.statusCode).toBe(400);
@@ -47,14 +50,28 @@ describe('Service Management Module', function () {
 
     test('rejects a duration outside 1-480', async function () {
         const res = await request(app).post('/api/services').send({
-            name: "Test", description: "Desc", duration: 0, priority: "Low"
+            name: "Test", description: "Desc", duration: 0, maxSize: 15, priority: "Low"
+        });
+        expect(res.statusCode).toBe(400);
+    });
+
+    test('rejects a max queue size outside 1-200', async function () {
+        const res = await request(app).post('/api/services').send({
+            name: "Test", description: "Desc", duration: 10, maxSize: 300, priority: "Low"
+        });
+        expect(res.statusCode).toBe(400);
+    });
+
+    test('rejects a fractional max queue size', async function () {
+        const res = await request(app).post('/api/services').send({
+            name: "Test", description: "Desc", duration: 10, maxSize: 3.5, priority: "Low"
         });
         expect(res.statusCode).toBe(400);
     });
 
     test('rejects an invalid priority level', async function () {
         const res = await request(app).post('/api/services').send({
-            name: "Test", description: "Desc", duration: 10, priority: "Urgent"
+            name: "Test", description: "Desc", duration: 10, maxSize: 15, priority: "Urgent"
         });
         expect(res.statusCode).toBe(400);
     });
@@ -64,6 +81,7 @@ describe('Service Management Module', function () {
             name: "Academic Advising",
             description: "Updated description.",
             duration: 40,
+            maxSize: 10,
             priority: "High"
         });
         expect(res.statusCode).toBe(200);
@@ -72,7 +90,7 @@ describe('Service Management Module', function () {
 
     test('returns 404 when updating a missing service', async function () {
         const res = await request(app).put('/api/services/999').send({
-            name: "X", description: "Y", duration: 10, priority: "Low"
+            name: "X", description: "Y", duration: 10, maxSize: 10, priority: "Low"
         });
         expect(res.statusCode).toBe(404);
     });
