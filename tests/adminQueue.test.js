@@ -113,4 +113,10 @@ describe('Queue Management Module (Admin side)', function () {
         });
         expect(missed).toBeTruthy();
     });
+
+    test('rejects a join when the service queue is closed', async function () {
+        await request(app).post('/api/services/1/close');
+        const res = await join("Alice", "Academic Advising");
+        expect(res.statusCode).toBe(400);
+    });
 });
