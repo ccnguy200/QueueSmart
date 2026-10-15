@@ -87,4 +87,28 @@ describe('Service Management Module', function () {
         const res = await request(app).delete('/api/services/999');
         expect(res.statusCode).toBe(404);
     });
+
+    test('gets a single service by id', async function () {
+        const res = await request(app).get('/api/services/1');
+        expect(res.statusCode).toBe(200);
+        expect(res.body.service.name).toBe("Academic Advising");
+    });
+
+    test('returns 404 when getting a missing service', async function () {
+        const res = await request(app).get('/api/services/999');
+        expect(res.statusCode).toBe(404);
+    });
+
+    test('closes a service queue', async function () {
+        const res = await request(app).post('/api/services/1/close');
+        expect(res.statusCode).toBe(200);
+        expect(res.body.service.open).toBe(false);
+    });
+
+    test('opens a service queue again', async function () {
+        await request(app).post('/api/services/1/close');
+        const res = await request(app).post('/api/services/1/open');
+        expect(res.statusCode).toBe(200);
+        expect(res.body.service.open).toBe(true);
+    });
 });
