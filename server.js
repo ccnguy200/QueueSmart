@@ -6,6 +6,9 @@ const path = require('path');
 
 const { router: userQueueRouter } = require('./routes/userQueue');
 const { router: notificationRouter } = require('./routes/notifications');
+const { router: serviceRouter } = require('./routes/services');
+const { router: historyRouter } = require('./routes/history');
+const { router: adminQueueRouter } = require('./routes/adminQueue');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -36,6 +39,15 @@ app.use('/api/queue', userQueueRouter);
 
 // Mount Notification API Routes
 app.use('/api/notifications', notificationRouter);
+
+// Mount Service Management API Routes
+app.use('/api/services', serviceRouter);
+
+// Mount History API Routes
+app.use('/api/history', historyRouter);
+
+// Mount Admin Queue API Routes
+app.use('/api/admin/queue', adminQueueRouter);
 
 
 // ***** LOGIN + REGISTER LOGIC BELOW *****
