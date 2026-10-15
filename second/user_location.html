@@ -58,9 +58,9 @@
                     <!-- When a service is selected, showPlace() shows its building -->
                     <select id="service" name="service" required onchange="showPlace()">
                         <option value="" disabled selected>-- Please Select a Service --</option>
-                        <option value="Advising">Academic Advising</option>
-                        <option value="Financial Aid">Financial Aid Office</option>
-                        <option value="Tutoring">Tutoring Services</option>
+                        <option value="Academic Advising">Academic Advising</option>
+                        <option value="Financial Aid Office">Financial Aid Office</option>
+                        <option value="Tutoring Services">Tutoring Services</option>
                     </select>
                     <p class="hint">Location: <span id="place-name">Select a service above</span></p>
                 </div>
@@ -109,14 +109,14 @@
             <button type="button" class="btn" id="join-btn" onclick="goToJoinQueue()" disabled>Join Queue</button>
         </div>
 
-        <!-- Note: Mock Data used, no backend -->
+        <!-- Note: Mock Data used, only the queue the user is in comes from the backend -->
         <script>
             // Open or closed for each service
             // Note: mock data, same as the admin screens
-            const queueOpen = { "Advising": true, "Financial Aid": true, "Tutoring": false };
+            const queueOpen = { "Academic Advising": true, "Financial Aid Office": true, "Tutoring Services": false };
 
             // Note: mock data, the user is already in the Academic Advising queue
-            const currentQueue = "Advising";
+            let currentQueue = "Academic Advising";
 
             // If we came from another page with a service picked, select it
             const params = new URLSearchParams(window.location.search);
@@ -251,6 +251,43 @@
                 error.innerText = "";
                 error.style.display = "none";
             }
+
+            // Ask the backend which queue the logged in user is in
+            async function loadCurrentQueue() {
+                // Nobody is logged in: keep the mock data
+                const userName = sessionStorage.getItem("userName");
+                if (userName === null) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/api/queue/status');
+                    const data = await response.json();
+
+                    if (!response.ok || !data.success) {
+                        return;
+                    }
+
+                    // The user is not in a queue (null) unless their entry is found
+                    const oldQueue = currentQueue;
+                    currentQueue = null;
+                    for (let i = 0; i < data.queue.length; i++) {
+                        if (data.queue[i].userName === userName) {
+                            currentQueue = data.queue[i].service;
+                        }
+                    }
+
+                    // A different queue means the old result is no longer correct
+                    if (currentQueue !== oldQueue) {
+                        hideResult();
+                    }
+                } catch (err) {
+                    console.log("Could not load the current queue.");
+                }
+            }
+
+            // Runs when the page is shown (also after the Back button)
+            window.addEventListener('pageshow', loadCurrentQueue);
         </script>
     </body>
 </html>

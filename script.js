@@ -1,4 +1,7 @@
-const API = "http://localhost:3000/api/auth";
+const API = "/api/auth";
+
+// Logout goes back to the login page, so opening login or register forgets the logged in user
+sessionStorage.removeItem("userName");
 
 async function login() {
     let username = document.getElementById("email").value.toLowerCase().trim();
@@ -17,6 +20,7 @@ async function login() {
             showPopup("Incorrect Login.");
             return false;
         }
+        sessionStorage.setItem("userName", username);
         if (data.role == "admin") {
             showPopup("Login Successful", goToAdminDashboard);
         }
@@ -56,6 +60,7 @@ async function register() {
             showPopup(data.error || "Registration failed.");
             return false;
         }
+        sessionStorage.setItem("userName", first);
         if (data.role == "admin") {
             showPopup("Register Successful", goToAdminDashboard);
         }
