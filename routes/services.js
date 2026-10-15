@@ -8,6 +8,9 @@ const router = express.Router();
 const MAX_NAME_LENGTH = 100;
 const MAX_DESCRIPTION_LENGTH = 500;
 
+// Largest queue size a service can have (people)
+const MAX_QUEUE_SIZE = 200;
+
 // The priority levels a service can have
 const PRIORITY_LEVELS = ["Low", "Medium", "High"];
 
@@ -20,9 +23,9 @@ let nextId = 1;
 // Mock data: the services from the A2 Service Management screen
 function addMockServices() {
     const mock = [
-        { name: "Academic Advising", description: "Talk to an advisor about course selection.", duration: 30, priority: "High", open: true },
-        { name: "Financial Aid Office", description: "Help with FAFSA, scholarships, and aid questions.", duration: 15, priority: "Medium", open: true },
-        { name: "Tutoring Services", description: "One-on-one tutoring for selected courses.", duration: 5, priority: "Low", open: true }
+        { name: "Academic Advising", description: "Talk to an advisor about course selection.", duration: 30, maxSize: 10, priority: "High", open: true },
+        { name: "Financial Aid Office", description: "Help with FAFSA, scholarships, and aid questions.", duration: 15, maxSize: 8, priority: "Medium", open: true },
+        { name: "Tutoring Services", description: "One-on-one tutoring for selected courses.", duration: 5, maxSize: 5, priority: "Low", open: true }
     ];
 
     for (let i = 0; i < mock.length; i++) {
@@ -31,6 +34,7 @@ function addMockServices() {
             name: mock[i].name,
             description: mock[i].description,
             duration: mock[i].duration,
+            maxSize: mock[i].maxSize,
             priority: mock[i].priority,
             open: mock[i].open
         });
@@ -48,7 +52,7 @@ function resetServices() {
 
 // Check a service's fields
 // Returns an error message, or "" if everything is fine
-function checkService(name, description, duration, priority) {
+function checkService(name, description, duration, maxSize, priority) {
     if (name === undefined || name === null || String(name).trim() === "") {
         return "Service name is required.";
     }
@@ -66,6 +70,12 @@ function checkService(name, description, duration, priority) {
     }
     if (Number(duration) < 1 || Number(duration) > 480) {
         return "Expected duration must be between 1 and 480 minutes.";
+    }
+    if (maxSize === undefined || maxSize === null || maxSize === "" || isNaN(Number(maxSize))) {
+        return "Max queue size must be a number.";
+    }
+    if (Number(maxSize) < 1 || Number(maxSize) > MAX_QUEUE_SIZE || Math.floor(Number(maxSize)) !== Number(maxSize)) {
+        return "Max queue size must be a whole number between 1 and " + MAX_QUEUE_SIZE + ".";
     }
     if (PRIORITY_LEVELS.indexOf(priority) === -1) {
         return "Priority must be Low, Medium, or High.";
@@ -115,9 +125,10 @@ router.post('/', function (req, res) {
     const name = req.body.name;
     const description = req.body.description;
     const duration = req.body.duration;
+    const maxSize = req.body.maxSize;
     const priority = req.body.priority;
 
-    const error = checkService(name, description, duration, priority);
+    const error = checkService(name, description, duration, maxSize, priority);
     if (error !== "") {
         return res.status(400).json({ success: false, message: error });
     }
@@ -127,6 +138,7 @@ router.post('/', function (req, res) {
         name: String(name).trim(),
         description: String(description).trim(),
         duration: Number(duration),
+        maxSize: Number(maxSize),
         priority: priority,
         open: true
     };
@@ -148,9 +160,10 @@ router.put('/:id', function (req, res) {
     const name = req.body.name;
     const description = req.body.description;
     const duration = req.body.duration;
+    const maxSize = req.body.maxSize;
     const priority = req.body.priority;
 
-    const error = checkService(name, description, duration, priority);
+    const error = checkService(name, description, duration, maxSize, priority);
     if (error !== "") {
         return res.status(400).json({ success: false, message: error });
     }
@@ -158,6 +171,7 @@ router.put('/:id', function (req, res) {
     service.name = String(name).trim();
     service.description = String(description).trim();
     service.duration = Number(duration);
+    service.maxSize = Number(maxSize);
     service.priority = priority;
 
     return res.json({ success: true, message: "Service updated.", service: service });
