@@ -119,4 +119,19 @@ describe('Queue Management Module (Admin side)', function () {
         const res = await join("Alice", "Academic Advising");
         expect(res.statusCode).toBe(400);
     });
+
+    test('removes a user from the queue by id', async function () {
+        await join("Alice", "Academic Advising");
+        await join("Bob", "Academic Advising");
+
+        const res = await request(app).delete('/api/admin/queue/' + activeQueue[1].id);
+        expect(res.statusCode).toBe(200);
+        expect(activeQueue.length).toBe(1);
+        expect(activeQueue[0].userName).toBe("Alice");
+    });
+
+    test('returns 404 when removing a missing queue entry', async function () {
+        const res = await request(app).delete('/api/admin/queue/does-not-exist');
+        expect(res.statusCode).toBe(404);
+    });
 });
