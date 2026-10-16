@@ -29,29 +29,40 @@
         <div id="display"></div>
 
         <!-- Note: Mock Data used, no backend -->
-        <script>
-            // Mock queues (same people as Queue Management)
-            // desk: where the person being served should go
-            const services = [
-                {
-                    name: "Academic Advising",
-                    desk: "Desk 1",
-                    open: true,
-                    people: ["Maria Lopez", "David Kim", "Aisha Rahman", "Tom Becker"]
-                },
-                {
-                    name: "Financial Aid Office",
-                    desk: "Desk 2",
-                    open: true,
-                    people: ["Grace Chen", "Noah Patel"]
-                },
-                {
-                    name: "Tutoring Services",
-                    desk: "Room 105",
-                    open: false,
-                    people: []
+        <script>            // Desk each service's queue serves at (mock data)
+            const desks = {
+                "Academic Advising": "Desk 1",
+                "Financial Aid Office": "Desk 2",
+                "Tutoring Services": "Room 105"
+            };
+
+            // Data loaded from the backend
+            let services = [];
+            let queue = [];
+
+            // Load services and the queue, then build the display
+            async function loadDisplay() {
+                const servicesRes = await fetch('/api/services');
+                const servicesData = await servicesRes.json();
+                services = servicesData.services;
+
+                const queueRes = await fetch('/api/queue/status');
+                const queueData = await queueRes.json();
+                queue = queueData.queue;
+
+                renderDisplay();
+            }
+
+            // The waiting people for one service, in order
+            function waitingFor(serviceName) {
+                const people = [];
+                for (let i = 0; i < queue.length; i++) {
+                    if (queue[i].service === serviceName && queue[i].status === "waiting") {
+                        people.push(queue[i]);
+                    }
                 }
-            ];
+                return people;
+            }
 
             // Turn "Maria Lopez" into "Maria L." to keep names private
             function shortName(fullName) {
@@ -66,6 +77,7 @@
 
                 for (let i = 0; i < services.length; i++) {
                     const service = services[i];
+                    const people = waitingFor(service.name);
                     const card = document.createElement("div");
                     card.className = "card";
 
@@ -76,7 +88,7 @@
                             '<p><span class="badge badge-closed">Closed</span></p>';
                     }
                     // Open but nobody waiting
-                    else if (service.people.length === 0) {
+                    else if (people.length === 0) {
                         card.innerHTML =
                             "<h3>" + service.name + "</h3>" +
                             '<p class="empty">No one is waiting.</p>';
@@ -84,8 +96,8 @@
                     else {
                         // The first person is being served, the next three are up next
                         let upNext = "";
-                        for (let j = 1; j < service.people.length && j <= 3; j++) {
-                            upNext = upNext + "<li>" + shortName(service.people[j]) + "</li>";
+                        for (let j = 1; j < people.length && j <= 3; j++) {
+                            upNext = upNext + "<li>" + shortName(people[j].userName) + "</li>";
                         }
                         if (upNext === "") {
                             upNext = "<li>No one else is waiting.</li>";
@@ -96,16 +108,16 @@
                             '<div class="current">' +
                                 '<div class="stat">' +
                                     '<div class="label">Now Serving</div>' +
-                                    '<div class="value">' + shortName(service.people[0]) + "</div>" +
+                                    '<div class="value">' + shortName(people[0].userName) + "</div>" +
                                 "</div>" +
                                 '<div class="stat">' +
                                     '<div class="label">Please Go To</div>' +
-                                    '<div class="value">' + service.desk + "</div>" +
+                                    '<div class="value">' + desks[service.name] + "</div>" +
                                 "</div>" +
                             "</div>" +
                             "<p><strong>Up Next:</strong></p>" +
                             "<ul>" + upNext + "</ul>" +
-                            '<button class="btn-secondary" onclick="callNext(' + i + ')">Call Next (demo)</button>';
+                            '<button class="btn-secondary" onclick="callNext(\'' + service.name + '\')">Call Next</button>';
                     }
 
                     display.appendChild(card);
@@ -132,13 +144,17 @@
                 document.getElementById("updated-time").innerText = hour + ":" + minute + " " + suffix;
             }
 
-            // The person being served is done, call the next one (UI simulation)
-            function callNext(index) {
-                services[index].people.shift();
-                renderDisplay();
+            // Serve the next person for a service
+            async function callNext(serviceName) {
+                await fetch('/api/admin/queue/serve', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ service: serviceName })
+                });
+                await loadDisplay();
             }
 
-            renderDisplay();
+            loadDisplay();
         </script>
     </body>
 </html>
