@@ -92,14 +92,14 @@ function checkRegister(input, output) {
         }
 
         // Card number must be 16 digits
-        if(cardNumber.length != 16 || !isAllDigits(cardNumber)){
+        if(cardNumber.length !== 16 || !isAllDigits(cardNumber)){
             return output.status(400).json({success: false, error: "Card Number must be 16 digits (numbers only)!"});
         }
 
         // Expiry must look like MM/YY
         let month = cardExpiry.substring(0, 2);
         let year = cardExpiry.substring(3, 5);
-        if(cardExpiry.length != 5 || cardExpiry[2] != "/" || !isAllDigits(month) || !isAllDigits(year)){
+        if(cardExpiry.length !== 5 || cardExpiry[2] !== "/" || !isAllDigits(month) || !isAllDigits(year)){
             return output.status(400).json({success: false, error: "Expiry must be in MM/YY format!"});
         }
 
@@ -112,12 +112,12 @@ function checkRegister(input, output) {
         let now = new Date();
         let thisMonth = now.getMonth() + 1;
         let thisYear = now.getFullYear() - 2000;
-        if(Number(year) < thisYear || (Number(year) == thisYear && Number(month) < thisMonth)){
+        if(Number(year) < thisYear || (Number(year) === thisYear && Number(month) < thisMonth)){
             return output.status(400).json({success: false, error: "This card has expired!"});
         }
 
         // CVV must be 3 digits
-        if(cardCVV.length != 3 || !isAllDigits(cardCVV)){
+        if(cardCVV.length !== 3 || !isAllDigits(cardCVV)){
             return output.status(400).json({success: false, error: "CVV must be 3 digits!"});
         }
     }
