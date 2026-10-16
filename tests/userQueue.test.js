@@ -103,8 +103,49 @@ describe('Unit Tests for User Module', () => {
 
     // test 5: will test reschedule route for calendar feature
     // expected output: appt date and time should be updated successfully
+    test('User reschedules appointment successfully', async () => {
+        // add hypothetical entry into queue
+        activeQueue.push({
+            id: "Reschedule",
+            service: "Academic Advising",
+            queueDate: "2026-10-16",
+            queueTime: "09:00",
+            status: "waiting"
+        });
+
+        // valid rescheduling details to send
+        const reschedulePayload = {
+            queueId: "Reschedule",
+            newDate: "2026-10-17",
+            newTime: "10:00"
+        };
+
+        // send request to api reschedule route
+        const response = await sendRequest(importApp).put('/api/queue/reschedule').send(reschedulePayload);
+
+        // expected output: status code 200 / date and time to update successfully
+        expect(response.statusCode).toBe(200);
+        expect(activeQueue[0].queueDate).toBe("2026-10-17");
+        expect(activeQueue[0].queueTime).toBe("10:00");
+    });
 
     // test 6: will test cancel route for calendar fearure
     // expetec output: appt status should be set to 'canceled'
-    
+    test('User cancels appointment successfully', async () => {
+        // add hypothetical entry into queue
+        activeQueue.push({
+            id: "Cancel",
+            service: "Financial Aid Office",
+            queueDate: "2026-10-16",
+            queueTime: "05:00",
+            status: "waiting"
+        });
+
+        // send request to api cancel route
+        const response = await sendRequest(importApp).put('/api/queue/cancel').send({ queueId: "Cancel" });
+
+        // expected output: status code 200 / target appt status = "Canceled"
+        expect(response.statusCode).toBe(200);
+        expect(activeQueue[0].status).toBe("Canceled");
+    });
 });

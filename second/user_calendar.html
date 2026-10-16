@@ -361,7 +361,7 @@
             }
 
             // Check the new date and time, then save them
-            function saveReschedule(event){
+            async function saveReschedule(event){
                 event.preventDefault();
 
                 const newDate = document.getElementById("new-date").value;
@@ -389,6 +389,24 @@
                     }
                 }
 
+                // send req to backend if appt exists on server
+                const targetAppt = events[editIndex];
+                if (targetAppt && targetAppt.id && !targetAppt.id.startsWith("MOCK-")) {
+                    try {
+                        await fetch('/api/queue/reschedule', {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                queueId: targetAppt.id,
+                                newDate: newDate,
+                                newTime: newTime
+                            })
+                        });
+                    } catch (err) {
+                        console.log("Could not sync reschedule with the server.");
+                    }
+                }
+
                 events[editIndex].date = newDate;
                 events[editIndex].time = newTime;
                 showPopup(events[editIndex].title + " moved to " + newDate + " at " + formatTime(newTime) + ".");
@@ -407,7 +425,21 @@
             }
 
             // Mark the appointment as canceled
-            function cancelConfirmed(index){
+            async function cancelConfirmed(index){
+                // send req to backend if appt exists on the server
+                const targetAppt = events[Index];
+                if (targetAppt && targetAppt.id && !targetAppt.id.startsWith("MOCK-")) {
+                    try {
+                        await fetch('/api/queue/cancel', {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ queueId: targetAppt.id })
+                        });
+                    } catch (err) {
+                        console.log("Could not sync cancel with the server.");
+                    }
+                }
+
                 events[index].status = "Canceled";
 
                 // If this one was being rescheduled, close the form
