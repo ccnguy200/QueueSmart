@@ -2,6 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const notifications = require('./notifications');
+const { isServiceOpen } = require('./services');
 
 // In-memory storage: will hold active queues while server is running
 const activeQueue = [];
@@ -30,6 +31,14 @@ router.post('/join', (req, res) => {
         return res.status(400).json({ 
             success: false, 
             message: "Missing required fields." 
+        });
+    }
+
+    // stop new joins when the service queue is closed
+    if (!isServiceOpen(service)) {
+        return res.status(400).json({
+            success: false,
+            message: "This service queue is currently closed."
         });
     }
 

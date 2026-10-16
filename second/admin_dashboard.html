@@ -107,42 +107,62 @@
         </div>
 
         <!-- Note: Mock Data used -->
-        <script>
-            // Mock services with their queue length and status
-            const services = [
-                { id: 1, name: "Academic Advising", priority: "High", queueLength: 4, maxSize: 10, open: true },
-                { id: 2, name: "Financial Aid Office", priority: "Medium", queueLength: 2, maxSize: 8, open: true },
-                { id: 3, name: "Tutoring Services", priority: "Low", queueLength: 0, maxSize: 5, open: false }
-            ];
-
-            // Minutes each person takes, per service (same as Queue Management)
-            const minutesPerPerson = { 1: 10, 2: 8, 3: 5 };
-
-            // Alert when the last person in an open queue waits longer than this
+        <script>            // Alert when the last person in an open queue waits longer than this
             const waitLimit = 25;
 
-            // Today's numbers (mock data)
-            const today = { served: 18, noShows: 2, totalWaitMinutes: 240 };
+            // Data loaded from the backend
+            let services = [];
+            let queueEntries = [];
+            let history = [];
 
-            // Build the service table and the summary counters
+            // Load services, queue, and history from the backend, then render
+            async function loadDashboard() {
+                const servicesRes = await fetch('/api/services');
+                const servicesData = await servicesRes.json();
+                services = servicesData.services;
+
+                const queueRes = await fetch('/api/queue/status');
+                const queueData = await queueRes.json();
+                queueEntries = queueData.queue;
+
+                const historyRes = await fetch('/api/history');
+                const historyData = await historyRes.json();
+                history = historyData.history;
+
+                renderServices();
+                updateSummary();
+            }
+
+            // Count the waiting people in one service's queue
+            function waitingFor(serviceName) {
+                let count = 0;
+                for (let i = 0; i < queueEntries.length; i++) {
+                    if (queueEntries[i].service === serviceName && queueEntries[i].status === "waiting") {
+                        count = count + 1;
+                    }
+                }
+                return count;
+            }
+
+            // Build the services table
             function renderServices() {
                 const body = document.getElementById("services-body");
                 body.innerHTML = "";
 
                 for (let i = 0; i < services.length; i++) {
                     const service = services[i];
+                    const queueLength = waitingFor(service.name);
                     const row = document.createElement("tr");
 
                     let status = '<span class="badge badge-closed">Closed</span>';
                     let action = "Open";
-
                     if (service.open === true) {
                         status = '<span class="badge badge-open">Open</span>';
                         action = "Close";
                     }
 
                     // Spots left before the queue is full
-                    let spotsLeft = service.maxSize - service.queueLength;
+                    let spotsLeft = service.maxSize - queueLength;
                     let spots = spotsLeft + " of " + service.maxSize;
                     if (spotsLeft <= 0) {
                         spots = '<span class="badge badge-closed">Full</span>';
@@ -151,26 +171,13 @@
                     row.innerHTML =
                         "<td>" + service.name + "</td>" +
                         "<td>" + service.priority + "</td>" +
-                        "<td>" + service.queueLength + "</td>" +
+                        "<td>" + queueLength + "</td>" +
                         "<td>" + spots + "</td>" +
                         "<td>" + status + "</td>" +
                         '<td><button class="btn" onclick="toggleQueue(' + service.id + ')">' + action + "</button></td>";
 
                     body.appendChild(row);
                 }
-
-                updateSummary();
-            }
-
-            // Open or close a queue
-            function toggleQueue(id) {
-                for (let i = 0; i < services.length; i++) {
-                    if (services[i].id === id) {
-                        services[i].open = !services[i].open;
-                    }
-                }
-
-                renderServices();
             }
 
             // Update the summary counters
@@ -179,8 +186,7 @@
                 let open = 0;
 
                 for (let i = 0; i < services.length; i++) {
-                    waiting = waiting + services[i].queueLength;
-
+                    waiting = waiting + waitingFor(services[i].name);
                     if (services[i].open === true) {
                         open = open + 1;
                     }
@@ -190,16 +196,56 @@
                 document.getElementById("stat-waiting").innerText = waiting;
                 document.getElementById("stat-open").innerText = open;
 
-                // Average wait = total minutes waited / people served
-                const averageWait = Math.round(today.totalWaitMinutes / today.served);
-                document.getElementById("stat-served").innerText = today.served;
+                // Today's numbers come from the history records
+                let served = 0;
+                let missed = 0;
+                let totalWait = 0;
+
+                for (let i = 0; i < history.length; i++) {
+                    if (history[i].outcome === "Served") {
+                        served = served + 1;
+                        totalWait = totalWait + history[i].wait;
+                    } else if (history[i].outcome === "Missed") {
+                        missed = missed + 1;
+                    }
+                }
+
+                document.getElementById("stat-served").innerText = served;
+
+                let averageWait = 0;
+                if (served > 0) {
+                    averageWait = Math.round(totalWait / served);
+                }
                 document.getElementById("stat-avg-wait").innerText = averageWait + " min";
 
-                // No-show rate = no-shows / everyone who was called
-                const noShowRate = Math.round(today.noShows / (today.served + today.noShows) * 100);
+                let noShowRate = 0;
+                if (served + missed > 0) {
+                    noShowRate = Math.round(missed / (served + missed) * 100);
+                }
                 document.getElementById("stat-noshow").innerText = noShowRate + "%";
 
                 checkLongWaits();
+            }
+
+            // Open or close a queue on the backend
+            async function toggleQueue(id) {
+                let service = null;
+                for (let i = 0; i < services.length; i++) {
+                    if (services[i].id === id) {
+                        service = services[i];
+                    }
+                }
+                if (service === null) {
+                    return;
+                }
+
+                if (service.open === true) {
+                    await fetch('/api/services/' + id + '/close', { method: 'POST' });
+                } else {
+                    await fetch('/api/services/' + id + '/open', { method: 'POST' });
+                }
+
+                await loadDashboard();
             }
 
             // Show an alert for open queues where the last person waits too long
@@ -210,11 +256,11 @@
 
                 for (let i = 0; i < services.length; i++) {
                     const service = services[i];
+                    const queueLength = waitingFor(service.name);
 
-                    // Wait for the last person = people ahead of them x minutes each
                     let lastWait = 0;
-                    if (service.queueLength > 1) {
-                        lastWait = (service.queueLength - 1) * minutesPerPerson[service.id];
+                    if (queueLength > 1) {
+                        lastWait = (queueLength - 1) * service.duration;
                     }
 
                     if (service.open === true && lastWait > waitLimit) {
@@ -232,7 +278,7 @@
                 }
             }
 
-            renderServices();
+            loadDashboard();
         </script>
     </body>
 </html>

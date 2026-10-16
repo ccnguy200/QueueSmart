@@ -75,18 +75,7 @@
         </div>
 
         <!-- Note: Mock Data used, no backend -->
-        <script>
-            // Mock history of past queues: date, service, wait time, and outcome
-            const history = [
-                { date: "2026-09-14", service: "Academic Advising", wait: 30, outcome: "Served" },
-                { date: "2026-09-11", service: "Financial Aid Office", wait: 15, outcome: "Served" },
-                { date: "2026-09-08", service: "Tutoring Services", wait: 20, outcome: "Left Queue" },
-                { date: "2026-09-03", service: "Academic Advising", wait: 45, outcome: "Missed" },
-                { date: "2026-08-29", service: "Financial Aid Office", wait: 10, outcome: "Served" },
-                { date: "2026-08-25", service: "Tutoring Services", wait: 5, outcome: "Served" }
-            ];
-
-            // Return the badge markup for an outcome
+        <script>            // Return the badge markup for an outcome
             function outcomeBadge(outcome) {
                 let css = "badge-left";
 
@@ -99,33 +88,37 @@
                 return '<span class="badge ' + css + '">' + outcome + "</span>";
             }
 
-            // Build the history table for the selected filter
-            function renderHistory() {
+            // Load the history from the backend and show it, applying the filter
+            async function renderHistory() {
                 const filter = document.getElementById("outcome-filter").value;
+
+                let url = '/api/history';
+                if (filter !== "All") {
+                    url = '/api/history?outcome=' + encodeURIComponent(filter);
+                }
+
+                const response = await fetch(url);
+                const data = await response.json();
+
                 const body = document.getElementById("history-body");
                 const emptyMessage = document.getElementById("empty-message");
 
                 body.innerHTML = "";
                 let shown = 0;
 
-                for (let i = 0; i < history.length; i++) {
-                    const record = history[i];
+                for (let i = 0; i < data.history.length; i++) {
+                    const record = data.history[i];
+                    const row = document.createElement("tr");
+                    row.innerHTML =
+                        "<td>" + record.date + "</td>" +
+                        "<td>" + record.service + "</td>" +
+                        "<td>" + record.wait + " min</td>" +
+                        "<td>" + outcomeBadge(record.outcome) + "</td>";
 
-                    // "All" shows every record, otherwise match the outcome
-                    if (filter === "All" || record.outcome === filter) {
-                        const row = document.createElement("tr");
-                        row.innerHTML =
-                            "<td>" + record.date + "</td>" +
-                            "<td>" + record.service + "</td>" +
-                            "<td>" + record.wait + " min</td>" +
-                            "<td>" + outcomeBadge(record.outcome) + "</td>";
-
-                        body.appendChild(row);
-                        shown = shown + 1;
-                    }
+                    body.appendChild(row);
+                    shown = shown + 1;
                 }
 
-                // Show the empty message when nothing matched
                 if (shown === 0) {
                     emptyMessage.style.display = "block";
                 } else {
