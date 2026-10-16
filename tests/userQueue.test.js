@@ -100,4 +100,11 @@ describe('Unit Tests for User Module', () => {
         expect(response.statusCode).toBe(200);
         expect(activeQueue.length).toBe(0);
     });
+
+    // test 5: will test reschedule route for calendar feature
+    // expected output: appt date and time should be updated successfully
+
+    // test 6: will test cancel route for calendar fearure
+    // expetec output: appt status should be set to 'canceled'
+    
 });
