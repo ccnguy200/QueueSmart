@@ -216,10 +216,54 @@ router.delete('/:id', function (req, res) {
     return res.json({ success: true, message: removed.userName + " was removed from the queue.", user: removed });
 });
 
+// *** CALENDAR FUNCTIONALITY --- BEGIN ***
+
+const appointments = [
+    { id: "appt1", date: "2026-10-26", time: "09:00", title: "Academic Advising",   service: "Academic Advising" },
+    { id: "appt2", date: "2026-11-26", time: "12:00", title: "Financial Aid Office", service: "Financial Aid Office" },
+    { id: "appt3", date: "2026-11-05", time: "02:00", title: "Tutoring Services",    service: "Tutoring Services" }
+];
+
+router.get('/appointments', function (req, res) {
+    return res.json({ success: true, appointments: appointments });
+});
+
+router.post('/appointments', function (req, res) {
+    const date = String(req.body.date || "").trim();
+    const time = String(req.body.time || "").trim();
+    const title = String(req.body.title || "").trim();
+    const service = String(req.body.service || "").trim();
+
+    if (!date || !time || !title) {
+        return res.status(400).json({ success: false, message: "Missing date, time, or title." });
+    }
+    if (!/^\d{4}-\d{1,2}-\d{1,2}$/.test(date)) {
+        return res.status(400).json({ success: false, message: "Date must be YYYY-MM-DD." });
+    }
+    if (!/^\d{1,2}:\d{2}$/.test(time)) {
+        return res.status(400).json({ success: false, message: "Time must be HH:MM." });
+    }
+
+    const entry = {
+        id: "appt" + Date.now(),
+        date: date,
+        time: time,
+        title: title,
+        service: service
+    };
+    
+    appointments.push(entry);
+    return res.json({ success: true, appointment: entry });
+});
+
+// *** CALENDAR FUNCTIONALITY --- END ***
+
 module.exports = {
     router: router,
     priorityOf: priorityOf,
     nextServiceToServe: nextServiceToServe,
     recalculate: recalculate,
-    PRIORITY_ORDER: PRIORITY_ORDER
+    PRIORITY_ORDER: PRIORITY_ORDER,
+    // *** Added calendar export here ***
+    appointments: appointments
 };

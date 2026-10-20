@@ -63,6 +63,18 @@
                     <textarea id="service-desc" name="service-desc" required></textarea>
                 </div>
 
+                <!-- *** For Calendar Functionality : Added date + time input *** -->
+                <div class="form-group">
+                    <label for="service-date">Scheduled Date: <span class="required">*</span></label>
+                    <input type="date" id="service-date" name="service-date" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="service-time">Scheduled Time: <span class="required">*</span></label>
+                    <input type="time" id="service-time" name="service-time" required>
+                </div>
+                <!-- *** End calendar functionality *** -->
+
                 <!-- Expected Duration: required, in minutes -->
                 <div class="form-group">
                     <label for="service-duration">Expected Duration (minutes): <span class="required">*</span></label>
@@ -107,6 +119,9 @@
                     <tr>
                         <th>Service Name</th>
                         <th>Description</th>
+                        <!-- *** Added date and time below *** -->
+                        <th>Date</th>
+                        <th>Time</th>
                         <th>Duration</th>
                         <th>Max Size</th>
                         <th>Priority</th>
@@ -145,6 +160,9 @@
                     row.innerHTML =
                         "<td>" + service.name + "</td>" +
                         "<td>" + service.description + "</td>" +
+                        // *** Added date and time below ***
+                        "<td>" + (service.date || "—") + "</td>" +
+                        "<td>" + (service.time || "—") + "</td>" +
                         "<td>" + service.duration + " min</td>" +
                         "<td>" + service.maxSize + " people</td>" +
                         "<td>" + priorityBadge(service.priority) + "</td>" +
@@ -160,7 +178,7 @@
             // Return the badge markup for a priority level
             function priorityBadge(priority) {
                 const level = priority.toLowerCase();
-                return '<span class="badge badge-' + level + '">' + priority + "</span>";
+                return '<span class="badge badge-' + level + '">' + priority + '</span>';
             }
 
             // Validate the form and create or update the service on the backend
@@ -174,6 +192,11 @@
                 const maxText = document.getElementById("service-max").value;
                 const maxSize = Number(maxText);
                 const priority = document.getElementById("service-priority").value;
+                
+                // *** Added for Calendar Functionality below ***
+                const date = document.getElementById("service-date").value.trim();
+                const time = document.getElementById("service-time").value.trim();
+                // *** ***
 
                 // Client-side validation
                 if (name === "") {
@@ -200,12 +223,24 @@
                 if (priority === "") {
                     return showError("Please select a Priority Level.");
                 }
+                
+                // *** For Calendar below ***
+                if (date === "") {
+                    return showError("Scheduled Date is required.");
+                }
+                if (time === "") {
+                    return showError("Scheduled Time is required.");
+                }
+                // *** ***
 
                 clearError();
 
                 const payload = {
                     name: name,
                     description: description,
+                    // *** Added date and time below ***
+                    date: date,
+                    time: time,
                     duration: duration,
                     maxSize: maxSize,
                     priority: priority
@@ -231,6 +266,32 @@
                     return showError(data.message);
                 }
 
+                // *** Added for calendar functionality ***
+                // create the appointment for this service (only when creating)
+                if (editingId === null) {
+                    const user = sessionStorage.getItem("userName");
+                    if (user){
+                        const apptRes = await fetch('/api/admin/queue/appointments', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                user: user,
+                                date: date,
+                                time: time,
+                                title: name,
+                                service: name
+                            })
+                        });
+                        
+                        const apptData = await apptRes.json();
+                        console.log("APPOINTMENT RESPONSE:", apptData);
+                        if (!apptData.success) {
+                            return showError("Service saved, but appointment failed: " + apptData.message);
+                        }
+                    }
+                }
+                // *** ***
+
                 await loadServices();
                 resetForm();
             }
@@ -254,6 +315,10 @@
                 document.getElementById("service-duration").value = service.duration;
                 document.getElementById("service-max").value = service.maxSize;
                 document.getElementById("service-priority").value = service.priority;
+                // *** Added for calendar ***
+                document.getElementById("service-date").value = service.date || "";
+                document.getElementById("service-time").value = service.time || "";
+                // *** ***
 
                 editingId = id;
                 document.getElementById("form-title").innerText = "Edit Service";

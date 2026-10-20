@@ -22,10 +22,11 @@ let nextId = 1;
 
 // Mock data: the services from the A2 Service Management screen
 function addMockServices() {
+    // *** Added date and time ***
     const mock = [
-        { name: "Academic Advising", description: "Talk to an advisor about course selection.", duration: 30, maxSize: 10, priority: "High", open: true },
-        { name: "Financial Aid Office", description: "Help with FAFSA, scholarships, and aid questions.", duration: 15, maxSize: 8, priority: "Medium", open: true },
-        { name: "Tutoring Services", description: "One-on-one tutoring for selected courses.", duration: 5, maxSize: 5, priority: "Low", open: true }
+        { name: "Academic Advising", description: "Talk to an advisor about course selection.", date: "2026-10-26", time: "09:00", duration: 30, maxSize: 10, priority: "High", open: true },
+        { name: "Financial Aid Office", description: "Help with FAFSA, scholarships, and aid questions.", date: "2026-11-26", time: "12:00", duration: 15, maxSize: 8, priority: "Medium", open: true },
+        { name: "Tutoring Services", description: "One-on-one tutoring for selected courses.", date: "2026-11-05", time: "02:00", duration: 5, maxSize: 5, priority: "Low", open: true }
     ];
 
     for (let i = 0; i < mock.length; i++) {
@@ -33,6 +34,9 @@ function addMockServices() {
             id: nextId,
             name: mock[i].name,
             description: mock[i].description,
+            // *** Added date and time ***
+            date: mock[i].date,
+            time: mock[i].time,
             duration: mock[i].duration,
             maxSize: mock[i].maxSize,
             priority: mock[i].priority,
@@ -52,7 +56,8 @@ function resetServices() {
 
 // Check a service's fields
 // Returns an error message, or "" if everything is fine
-function checkService(name, description, duration, maxSize, priority) {
+// *** Added date and time ***
+function checkService(name, description, date, time, duration, maxSize, priority) {
     if (name === undefined || name === null || String(name).trim() === "") {
         return "Service name is required.";
     }
@@ -79,6 +84,19 @@ function checkService(name, description, duration, maxSize, priority) {
     }
     if (PRIORITY_LEVELS.indexOf(priority) === -1) {
         return "Priority must be Low, Medium, or High.";
+    }
+    // *** Added date and time ***
+    if (date === undefined || date === null || String(date).trim() === "") {
+        return "Scheduled date is required.";
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(date).trim())) {
+        return "Scheduled date must be YYYY-MM-DD.";
+    }
+    if (time === undefined || time === null || String(time).trim() === "") {
+        return "Scheduled time is required.";
+    }
+    if (!/^\d{2}:\d{2}$/.test(String(time).trim())) {
+        return "Scheduled time must be HH:MM.";
     }
     return "";
 }
@@ -124,11 +142,15 @@ router.get('/:id', function (req, res) {
 router.post('/', function (req, res) {
     const name = req.body.name;
     const description = req.body.description;
+    // *** Added date and time ***
+    const date = req.body.date;
+    const time = req.body.time;
     const duration = req.body.duration;
     const maxSize = req.body.maxSize;
     const priority = req.body.priority;
 
-    const error = checkService(name, description, duration, maxSize, priority);
+    // *** Added date and time ***
+    const error = checkService(name, description, date, time, duration, maxSize, priority);
     if (error !== "") {
         return res.status(400).json({ success: false, message: error });
     }
@@ -137,6 +159,9 @@ router.post('/', function (req, res) {
         id: nextId,
         name: String(name).trim(),
         description: String(description).trim(),
+        // *** Added date and time ***
+        date: String(date).trim(),        
+        time: String(time).trim(),        
         duration: Number(duration),
         maxSize: Number(maxSize),
         priority: priority,
@@ -159,17 +184,24 @@ router.put('/:id', function (req, res) {
 
     const name = req.body.name;
     const description = req.body.description;
+    // *** Added date and time ***
+    const date = req.body.date;
+    const time = req.body.time;
     const duration = req.body.duration;
     const maxSize = req.body.maxSize;
     const priority = req.body.priority;
 
-    const error = checkService(name, description, duration, maxSize, priority);
+    // *** Added date and time ***
+    const error = checkService(name, description, date, time, duration, maxSize, priority);
     if (error !== "") {
         return res.status(400).json({ success: false, message: error });
     }
 
     service.name = String(name).trim();
     service.description = String(description).trim();
+    // *** Added date and time ***
+    service.date = String(date).trim();
+    service.time = String(time).trim(); 
     service.duration = Number(duration);
     service.maxSize = Number(maxSize);
     service.priority = priority;
