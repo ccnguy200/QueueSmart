@@ -24,7 +24,7 @@ describe('front-end pages', function () {
     });
 
     test('front-end files in the main folder open', async function () {
-        const files = ['/index.html', '/styles.css', '/script.js', '/popup.js', '/location.js'];
+        const files = ['/index.html', '/styles.css', '/authentication.js', '/popup.js', '/location.js'];
 
         for (let i = 0; i < files.length; i++) {
             const response = await request(app).get(files[i]);
