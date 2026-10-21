@@ -18,12 +18,18 @@ describe('Service Management Module', function () {
         const res = await request(app).post('/api/services').send({
             name: "Career Center",
             description: "Resume and interview help.",
+            // ** Added date and time below ***
+            date: "2026-10-15",
+            time: "10:00",
             duration: 20,
             maxSize: 15,
             priority: "Medium"
         });
         expect(res.statusCode).toBe(201);
         expect(res.body.service.name).toBe("Career Center");
+        // *** Added date and time below ***
+        expect(res.body.service.date).toBe("2026-10-15");
+        expect(res.body.service.time).toBe("10:00");
         expect(services.length).toBe(4);
     });
 
@@ -80,17 +86,23 @@ describe('Service Management Module', function () {
         const res = await request(app).put('/api/services/1').send({
             name: "Academic Advising",
             description: "Updated description.",
+            // *** Date and time added here ***
+            date: "2026-11-01",
+            time: "09:30",
             duration: 40,
             maxSize: 10,
             priority: "High"
         });
         expect(res.statusCode).toBe(200);
         expect(services[0].duration).toBe(40);
+        // *** Date added below ***
+        expect(services[0].date).toBe("2026-11-01");
     });
 
     test('returns 404 when updating a missing service', async function () {
         const res = await request(app).put('/api/services/999').send({
-            name: "X", description: "Y", duration: 10, maxSize: 10, priority: "Low"
+            // *** Added date and time below ***
+            name: "X", description: "Y", date: "2026-10-15", time: "10:00", duration: 10, maxSize: 10, priority: "Low"
         });
         expect(res.statusCode).toBe(404);
     });
@@ -128,5 +140,42 @@ describe('Service Management Module', function () {
         const res = await request(app).post('/api/services/1/open');
         expect(res.statusCode).toBe(200);
         expect(res.body.service.open).toBe(true);
+    });
+
+    // *** Added tests for calendar/ date+time addition ***
+    test('rejects a service with no date', async function () {
+    const res = await request(app).post('/api/services').send({
+        name: "Test", description: "Desc",
+        time: "10:00",
+        duration: 10, maxSize: 15, priority: "Low"
+    });
+    expect(res.statusCode).toBe(400);
+});
+
+    test('rejects a service with no time', async function () {
+        const res = await request(app).post('/api/services').send({
+            name: "Test", description: "Desc",
+            date: "2026-10-15",
+            duration: 10, maxSize: 15, priority: "Low"
+        });
+        expect(res.statusCode).toBe(400);
+    });
+
+    test('rejects a service with an invalid date format', async function () {
+        const res = await request(app).post('/api/services').send({
+            name: "Test", description: "Desc",
+            date: "15/10/2026", time: "10:00",
+            duration: 10, maxSize: 15, priority: "Low"
+        });
+        expect(res.statusCode).toBe(400);
+    });
+
+    test('rejects a service with an invalid time format', async function () {
+        const res = await request(app).post('/api/services').send({
+            name: "Test", description: "Desc",
+            date: "2026-10-15", time: "25:99",
+            duration: 10, maxSize: 15, priority: "Low"
+        });
+        expect(res.statusCode).toBe(400);
     });
 });

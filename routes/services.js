@@ -89,13 +89,15 @@ function checkService(name, description, date, time, duration, maxSize, priority
     if (date === undefined || date === null || String(date).trim() === "") {
         return "Scheduled date is required.";
     }
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(date).trim())) {
+    const datePattern = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
+    if (!datePattern.test(String(date).trim())) {
         return "Scheduled date must be YYYY-MM-DD.";
     }
     if (time === undefined || time === null || String(time).trim() === "") {
         return "Scheduled time is required.";
     }
-    if (!/^\d{2}:\d{2}$/.test(String(time).trim())) {
+    const timePattern = /^([01]\d|2[0-3]):[0-5]\d$/;
+    if (!timePattern.test(String(time).trim())) {
         return "Scheduled time must be HH:MM.";
     }
     return "";
