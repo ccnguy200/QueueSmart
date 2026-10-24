@@ -132,4 +132,19 @@ describe('Unit Tests for Authentication', () => {
         expect(response.statusCode).toBe(400);
         expect(response.body.error).toBeDefined();
     });
+
+    // Test 8: Register with a password that is too short
+    // Expected Output: should return 400
+    test('Return 400 if the password is shorter than 8 characters', async () => {
+        const info = {
+            first: "shortpw@email.com",
+            second: "short",
+            role: "user"
+        };
+
+        const response = await sendRequest(importApp).post('/api/auth/register').send(info);
+
+        expect(response.statusCode).toBe(400);
+        expect(response.body.error).toBeDefined();
+    });
 });

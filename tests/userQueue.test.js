@@ -191,4 +191,24 @@ describe('Unit Tests for User Module', () => {
         expect(found).toBeTruthy();
         resetHistory();
     });
+
+    // test 9: will test that the join route rejects a cardholder name longer than 100 characters
+    // expected output: should return 400 error
+    test('Return 400 error if the cardholder name is longer than 100 characters', async () => {
+        const longName = {
+            userName: "Mary Jane",
+            service: "Academic Advising",
+            queueDate: "2026-10-12",
+            queueTime: "07:00",
+            cardName: "x".repeat(101),
+            cardNumber: "1234567898765432",
+            expDate: "07/29",
+            cvv: "123"
+        };
+
+        const response = await sendRequest(importApp).post('/api/queue/join').send(longName);
+
+        expect(response.statusCode).toBe(400);
+        expect(response.body.success).toBe(false);
+    });
 });
