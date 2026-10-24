@@ -56,6 +56,14 @@ router.post('/join', (req, res) => {
         return res.status(400).json({ success: false, message: "CVV must be 3 digits." });
     }
 
+    // field length limits
+    if (String(cardName).length > 100) {
+        return res.status(400).json({ success: false, message: "Cardholder name must be 100 characters or less." });
+    }
+    if (userName && String(userName).length > 100) {
+        return res.status(400).json({ success: false, message: "User name must be 100 characters or less." });
+    }
+
     // stop new joins when the service queue is closed
     if (!isServiceOpen(service)) {
         return res.status(400).json({
