@@ -2,19 +2,23 @@
 const express = require('express');
 const router = express.Router();
 const notifications = require('./notifications');
-const { isServiceOpen } = require('./services');
+const { isServiceOpen, services } = require('./services');
 const history = require('./history');
 
 // In-memory storage: will hold active queues while server is running
 const activeQueue = [];
 
-// wait-time estimation logic
-// rule based: position * expected duration
-const service_Durations = {
-    "Academic Advising": 30,
-    "Financial Aid Office": 24,
-    "Tutoring Services": 5
-};
+// wait-time estimation logic: rule based (position * expected duration)
+// The duration is read from the services module so edits made in Service
+// Management automatically apply to the wait-time estimates here too
+function serviceDuration(serviceName) {
+    for (let i = 0; i < services.length; i++) {
+        if (services[i].name === serviceName) {
+            return services[i].duration;
+        }
+    }
+    return 15;
+}
 
 // check if API is working, will also return curr queue items
 router.get('/', (req, res) => {
@@ -61,7 +65,7 @@ router.post('/join', (req, res) => {
     }
 
     // determine estimated duration for service (default will be 15)
-    const duration = service_Durations[service] || 15;
+    const duration = serviceDuration(service);
 
     // count num people curr in specific service queue
     let waitingCount = 0;
@@ -125,7 +129,7 @@ router.post('/leave', (req, res) => {
             const removed = activeQueue.splice(j, 1)[0];
 
             // update position + wait time for everyone still waiting in the same service
-            const duration = service_Durations[removed.service] || 15;
+            const duration = serviceDuration(removed.service);
             let newPosition = 1;
             for (let k = 0; k < activeQueue.length; k++) {
                 if (activeQueue[k].service === removed.service && activeQueue[k].status === "waiting") {
@@ -236,5 +240,5 @@ router.put('/cancel', (req, res) => {
     });
 });
 
-// export router + activeQueue + service_Durations to give access to unit tests and server.js
-module.exports = {router, activeQueue, service_Durations};
+// export router + activeQueue + serviceDuration to give access to unit tests and server.js
+module.exports = {router, activeQueue, serviceDuration};
