@@ -41,6 +41,14 @@ function checkRegister(input, output) {
         return output.status(400).json({ success: false, error: "Role must be 'user' or 'admin'." });
     }
 
+    if (username.length > 100) {
+        return output.status(400).json({ success: false, error: "Username must be 100 characters or less." });
+    }
+
+    if (password.length < 8 || password.length > 15) {
+        return output.status(400).json({ success: false, error: "Password must be between 8 and 15 characters." });
+    }
+
     if(users[username]){
         return output.status(409).json({success: false, error: "That email is already registered with an account!"});
     }
