@@ -4,7 +4,7 @@
 const express = require('express');
 const router = express.Router();
 
-const { activeQueue, service_Durations } = require('./userQueue');
+const { activeQueue, serviceDuration } = require('./userQueue');
 const { services } = require('./services');
 const history = require('./history');
 const notifications = require('./notifications');
@@ -63,7 +63,7 @@ function nextServiceToServe(requestedService) {
 
 // Re-number the positions and wait times for everyone waiting in one service
 function recalculate(service) {
-    const duration = service_Durations[service] || 15;
+    const duration = serviceDuration(service);
     let position = 1;
 
     for (let i = 0; i < activeQueue.length; i++) {
