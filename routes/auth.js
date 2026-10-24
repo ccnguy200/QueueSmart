@@ -37,6 +37,10 @@ function checkRegister(input, output) {
         return output.status(400).json({ success: false, error: "Missing required fields!" });
     }
 
+    if (role !== "user" && role !== "admin") {
+        return output.status(400).json({ success: false, error: "Role must be 'user' or 'admin'." });
+    }
+
     if(users[username]){
         return output.status(409).json({success: false, error: "That email is already registered with an account!"});
     }
