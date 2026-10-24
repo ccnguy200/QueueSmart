@@ -3,7 +3,9 @@ const express = require('express');
 const router = express.Router();
 const notifications = require('./notifications');
 const { isServiceOpen } = require('./services');
-const { QueueEntry } = require('../tables');
+
+// In-memory storage: will hold active queues while server is running
+const activeQueue = [];
 
 // wait-time estimation logic
 // rule based: position * expected duration
@@ -14,18 +16,13 @@ const service_Durations = {
 };
 
 // check if API is working, will also return curr queue items
-router.get('/', async (req, res) => {
-    try {
-        const activeQueue = await QueueEntry.findAll();
-        res.json({ message: "Queue API is working", queue: activeQueue });
-    } catch (err) {
-        res.status(500).json({ success: false, message: "Database error" });
-    }
+router.get('/', (req, res) => {
+    res.json({message: "Queue API is working", queue: activeQueue});
 });
 
 // route: joining queue
 // will add user to specified service queue, dtermine their position, and calculate the estimated wait time
-router.post('/join', async (req, res) => {
+router.post('/join', (req, res) => {
     // extraxt data sent in fron front-end
     const {userName, service, queueDate, queueTime, cardName, cardNumber, expDate, cvv} = req.body;
 
@@ -38,7 +35,7 @@ router.post('/join', async (req, res) => {
     }
 
     // stop new joins when the service queue is closed
-    if (typeof isServiceOpen === 'function' && !isServiceOpen(service)) {
+    if (!isServiceOpen(service)) {
         return res.status(400).json({
             success: false,
             message: "This service queue is currently closed."
@@ -48,52 +45,53 @@ router.post('/join', async (req, res) => {
     // determine estimated duration for service (default will be 15)
     const duration = service_Durations[service] || 15;
 
-    try {
-        // count num people curr in specific service queue
-        const waitingCount = await QueueEntry.count({
-            where: { service: service, status: "waiting" }
-        });
-
-        // update user's position based on curr wait count
-        const position = waitingCount + 1;
-
-        // determine estimated wait time 
-        const estimatedWaitTime = (position - 1) * duration;
-
-        // create new user entry to add into queue
-        const userEntry = await QueueEntry.create({
-            userName: userName || "Unknown",
-            service: service,
-            queueDate: queueDate,
-            queueTime: queueTime,
-            position: position,
-            estimatedWaitTime: estimatedWaitTime,
-            status: "waiting"
-        });
-
-        // send notifications: user joined the queue + anyone close to being served
-        if (notifications) {
-            const activeQueue = await QueueEntry.findAll();
-            if (typeof notifications.notifyJoined === 'function') notifications.notifyJoined(userEntry);
-            if (typeof notifications.checkQueue === 'function') notifications.checkQueue(activeQueue);
+    // count num people curr in specific service queue
+    let waitingCount = 0;
+    for (let i = 0; i < activeQueue.length; i++) {
+        if (activeQueue[i].service === service && activeQueue[i].status === "waiting") {
+            waitingCount++;
         }
-
-        // return response once created along w/ updated queue data
-        return res.status(201).json({
-            success: true,
-            message: "Successfully joined queue.",
-            data: userEntry
-        });
-    } catch (err) {
-        return res.status(500).json({ success: false, message: "Database error" });
     }
+
+    // update user's position based on curr wait count
+    const position = waitingCount + 1;
+
+    // determine estimated wait time 
+    const estimatedWaitTime = (position - 1) * duration;
+
+    // create new user entry to add into queue
+    // user will be given unique ID
+    const userEntry = {
+        id: "Q-" + Date.now(),            
+        userName: userName || "Unknown", 
+        service: service,
+        queueDate: queueDate,
+        queueTime: queueTime,
+        position: position,
+        estimatedWaitTime: estimatedWaitTime,
+        status: "waiting"
+    };
+
+    // push new user entry into active queue array
+    activeQueue.push(userEntry);
+
+    // send notifications: user joined the queue + anyone close to being served
+    notifications.notifyJoined(userEntry);
+    notifications.checkQueue(activeQueue);
+
+    // return response once created along w/ updated queue data
+    return res.status(201).json({
+        success: true,
+        message: "Successfully joined queue.",
+        data: userEntry
+    });
 });
 
 // route: leaving queue
 // will remove user from queue if user decides to cancel and leave spot
-router.post('/leave', async (req, res) => {
+router.post('/leave', (req, res) => {
     // extraxt queue id
-    const { queueId } = req.body;
+    const { queueId } = req.body
 
     // check to see if queue id was provided
     if (!queueId) {
@@ -103,65 +101,52 @@ router.post('/leave', async (req, res) => {
         });
     }
 
-    try {
-        const entry = await QueueEntry.findByPk(queueId);
-        if (!entry) {
-            return res.status(404).json({ 
-                success: false, 
-                message: "Entry was not found." 
+    // iterate through array and match entry
+    for (let j = 0; j < activeQueue.length; j++) {
+        if (activeQueue[j].id === queueId) {
+            const removed = activeQueue.splice(j, 1)[0];
+
+            // update position + wait time for everyone still waiting in the same service
+            const duration = service_Durations[removed.service] || 15;
+            let newPosition = 1;
+            for (let k = 0; k < activeQueue.length; k++) {
+                if (activeQueue[k].service === removed.service && activeQueue[k].status === "waiting") {
+                    activeQueue[k].position = newPosition;
+                    activeQueue[k].estimatedWaitTime = (newPosition - 1) * duration;
+                    newPosition++;
+                }
+            }
+
+            // send notifications: anyone who is now close to being served
+            notifications.checkQueue(activeQueue);
+            
+            return res.status(200).json({
+                success: true,
+                message: "Left queue successfully.",
+                data: removed
             });
         }
-
-        const removedService = entry.service;
-        await entry.destroy();
-
-        // update position + wait time for everyone still waiting in the same service
-        const remainingWaiting = await QueueEntry.findAll({
-            where: { service: removedService, status: "waiting" },
-            order: [['createdAt', 'ASC']]
-        });
-
-        const duration = service_Durations[removedService] || 15;
-        for (let k = 0; k < remainingWaiting.length; k++) {
-            const newPos = k + 1;
-            remainingWaiting[k].position = newPos;
-            remainingWaiting[k].estimatedWaitTime = (newPos - 1) * duration;
-            await remainingWaiting[k].save();
-        }
-
-        // send notifications: anyone who is now close to being served
-        if (notifications && typeof notifications.checkQueue === 'function') {
-            const activeQueue = await QueueEntry.findAll();
-            notifications.checkQueue(activeQueue);
-        }
-
-        return res.status(200).json({
-            success: true,
-            message: "Left queue successfully.",
-            data: entry
-        });
-    } catch (err) {
-        return res.status(500).json({ success: false, message: "Database error" });
     }
+
+    // return message if no match was found for queue id
+    return res.status(404).json({ 
+        success: false, 
+        message: "Entry was not found." 
+    });
 });
 
 // route: get queue status
 // will retrive all active queue entries
-router.get('/status', async (req, res) => {
-    try {
-        const activeQueue = await QueueEntry.findAll();
-        return res.status(200).json({ 
-            success: true, 
-            queue: activeQueue 
-        });
-    } catch (err) {
-        return res.status(500).json({ success: false, message: "Database error" });
-    }
+router.get('/status', (req, res) => {
+    return res.status(200).json({ 
+        success: true, 
+        queue: activeQueue 
+    });
 });
 
 // route: reschedule an appointment
 // will update date and time for an existing appt
-router.put('/reschedule', async (req, res) => {
+router.put('/reschedule', (req, res) => {
     // extract queueId for target, newDate, and newTime from request
     const { queueId, newDate, newTime } = req.body;
 
@@ -173,33 +158,31 @@ router.put('/reschedule', async (req, res) => {
         });
     }
 
-    try {
-        const entry = await QueueEntry.findByPk(queueId);
-        if (!entry) {
-            return res.status(404).json({
-                success: false,
-                message: "Entry was not found."
+    // iterate through arr, match target entry, and update date and tine
+    for (let m = 0; m < activeQueue.length; m++) {
+        if (activeQueue[m].id === queueId) {
+            activeQueue[m].queueDate = newDate;
+            activeQueue[m].queueTime = newTime;
+
+            // return message after appt rescheduled successfully
+            return res.status(200).json({
+                success: true,
+                message: "Appointment was rescheduled successfully.",
+                data: activeQueue[m]
             });
         }
-
-        entry.queueDate = newDate;
-        entry.queueTime = newTime;
-        await entry.save();
-
-        // return message after appt rescheduled successfully
-        return res.status(200).json({
-            success: true,
-            message: "Appointment was rescheduled successfully.",
-            data: entry
-        });
-    } catch (err) {
-        return res.status(500).json({ success: false, message: "Database error" });
     }
+
+    // return message if no match was found
+    return res.status(404).json({
+        success: false,
+        message: "Entry was not found."
+    });
 });
 
 // route: cancel an appointment
 // will set target appt status as 'canceled'
-router.put('/cancel', async (req, res) => {
+router.put('/cancel', (req, res) => {
     // extract queue id
     const { queueId } = req.body;
 
@@ -211,28 +194,26 @@ router.put('/cancel', async (req, res) => {
         });
     }
 
-    try {
-        const entry = await QueueEntry.findByPk(queueId);
-        if (!entry) {
-            return res.status(404).json({
-                success: false,
-                message: "Entry was not found."
+    // iterate through arr, match entry, and set status to 'Canceled'
+    for (let n = 0; n < activeQueue.length; n++) {
+        if (activeQueue[n].id === queueId) {
+            activeQueue[n].status = "Canceled";
+
+            // return message after appt canceled successfully
+            return res.status(200).json({
+                success: true,
+                message: "Appointment was canceled successfully.",
+                data: activeQueue[n]
             });
         }
-
-        entry.status = "Canceled";
-        await entry.save();
-
-        // return message after appt canceled successfully
-        return res.status(200).json({
-            success: true,
-            message: "Appointment was canceled successfully.",
-            data: entry
-        });
-    } catch (err) {
-        return res.status(500).json({ success: false, message: "Database error" });
     }
+
+    // return message if no match was found
+    return res.status(404).json({
+        success: false,
+        message: "Entry was not found."
+    });
 });
 
-// export router + service_Durations to give access to unit tests and server.js
-module.exports = {router, service_Durations};
+// export router + activeQueue + service_Durations to give access to unit tests and server.js
+module.exports = {router, activeQueue, service_Durations};

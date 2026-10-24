@@ -1,6 +1,6 @@
 // will connect all table relationships and export them togetehr
 
-const sequelize = require('../configuration/databaseConfig');
+const sequelize = require('../config/database');
 const UserCredentials = require('./UserCredentials');
 const UserProfile = require('./UserProfile');
 const Service = require('./Service');
