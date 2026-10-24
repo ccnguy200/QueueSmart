@@ -148,4 +148,47 @@ describe('Unit Tests for User Module', () => {
         expect(response.statusCode).toBe(200);
         expect(activeQueue[0].status).toBe("Canceled");
     });
+
+    // test 7: will test that the join route rejects a card number that is not 16 digits
+    // expected output: should return 400 error
+    test('Return 400 error if the card number is not 16 digits', async () => {
+        const badCard = {
+            userName: "Mary Jane",
+            service: "Academic Advising",
+            queueDate: "2026-10-12",
+            queueTime: "07:00",
+            cardName: "Mary Jane",
+            cardNumber: "12345",
+            expDate: "07/29",
+            cvv: "123"
+        };
+
+        const response = await sendRequest(importApp).post('/api/queue/join').send(badCard);
+
+        expect(response.statusCode).toBe(400);
+        expect(response.body.success).toBe(false);
+    });
+
+    // test 8: will test that leaving a queue is recorded in the history module
+    // expected output: the removed user should be recorded with "Left Queue" outcome
+    test('Leaving a queue is recorded in the history', async () => {
+        activeQueue.push({
+            id: "History Leave",
+            userName: "History User",
+            service: "Academic Advising",
+            estimatedWaitTime: 0,
+            status: "waiting"
+        });
+
+        await sendRequest(importApp).post('/api/queue/leave').send({ queueId: "History Leave" });
+
+        const { resetHistory } = require('../routes/history');
+        const historyResponse = await sendRequest(importApp).get('/api/history');
+        const found = historyResponse.body.history.find(function (record) {
+            return record.userName === "History User" && record.outcome === "Left Queue";
+        });
+
+        expect(found).toBeTruthy();
+        resetHistory();
+    });
 });

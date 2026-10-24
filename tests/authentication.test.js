@@ -117,4 +117,19 @@ describe('Unit Tests for Authentication', () => {
         expect(response.statusCode).toBe(409);
         expect(response.body.error).toBeDefined();
     });
+
+    // Test 7: Register with an invalid role
+    // Expected Output: should return 400
+    test('Return 400 if the role is not user or admin', async () => {
+        const info = {
+            first: "role@email.com",
+            second: "Password12345",
+            role: "superadmin"
+        };
+
+        const response = await sendRequest(importApp).post('/api/auth/register').send(info);
+
+        expect(response.statusCode).toBe(400);
+        expect(response.body.error).toBeDefined();
+    });
 });
