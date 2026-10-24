@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const notifications = require('./notifications');
 const { isServiceOpen } = require('./services');
+const history = require('./history');
 
 // In-memory storage: will hold active queues while server is running
 const activeQueue = [];
@@ -32,6 +33,23 @@ router.post('/join', (req, res) => {
             success: false, 
             message: "Missing required fields." 
         });
+    }
+
+    // validate the types and formats of the inputs
+    if (!/^\d{16}$/.test(cardNumber)) {
+        return res.status(400).json({ success: false, message: "Card number must be 16 digits." });
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(queueDate)) {
+        return res.status(400).json({ success: false, message: "Queue date must be in YYYY-MM-DD format." });
+    }
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(queueTime)) {
+        return res.status(400).json({ success: false, message: "Queue time must be in HH:MM format." });
+    }
+    if (!/^\d{2}\/\d{2}$/.test(expDate)) {
+        return res.status(400).json({ success: false, message: "Expiry date must be in MM/YY format." });
+    }
+    if (!/^\d{3}$/.test(cvv)) {
+        return res.status(400).json({ success: false, message: "CVV must be 3 digits." });
     }
 
     // stop new joins when the service queue is closed
@@ -119,6 +137,9 @@ router.post('/leave', (req, res) => {
 
             // send notifications: anyone who is now close to being served
             notifications.checkQueue(activeQueue);
+
+            // record the leave in the history module
+            history.recordEntry(removed.userName, removed.service, "Left Queue", removed.estimatedWaitTime);
             
             return res.status(200).json({
                 success: true,
