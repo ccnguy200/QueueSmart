@@ -1,11 +1,7 @@
 # QueueSmart
 ## Software Design Project - Team 28
 
-## Technology Used:
-- **Environment:** Node.js / Express.js
-- **Database:** SQLite3 w/ Sequealize ORM
-- **Testing:** Jest w/ Supertest
-- **Frontend:** HTML / CSS / JavaScript
+## Technology Used: HTML/CSS/JavaScript
 
 * **Team Members:**
   * Caroline Jensen
@@ -13,7 +9,7 @@
   * Jinjian Chen
   * Christina Nguyen
 
-## How to Run (Database-Backed Server)
+## How to Run (A3 Back End)
 
 1. Install [Node.js](https://nodejs.org/)
 2. In the project folder, install the packages (only needed the first time):
@@ -31,18 +27,9 @@ To run the unit tests with the coverage report:
 npm test
 ```
 
-## Database Setup (SQLite)
-- `UserCredentials` — email, encrypted password, and user role (user/admin)
-- `UserProfile` — user profile details will be linked to credentials
-- `Service` — available services, estimated durations, and priority levels
-- `Queue` — active service queue status
-- `QueueEntry` — users waiting in active queues, tracking positions, and appt dates/times
-- `NotificationHistory` — activity logs and user notifications
-
-
 ## API Endpoints
 
-All endpoints will store and retrive data using SQLite:
+The backend exposes these endpoints (all data is kept in memory while the server runs):
 
 ### Authentication
 - `POST /api/auth/login` — log in and get the user's role
@@ -53,8 +40,6 @@ All endpoints will store and retrive data using SQLite:
 - `POST /api/queue/join` — join a queue for a service
 - `POST /api/queue/leave` — leave a queue by queue id
 - `GET /api/queue/status` — get every active queue entry
-- `PUT /api/queue/reschedule` - update appt date and time
-- `PUT /api/queue/cancel` - update status of appt to 'canceled'
 
 ### Queue Management (Admin)
 - `GET /api/admin/queue` — view the current queue

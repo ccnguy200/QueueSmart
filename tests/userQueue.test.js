@@ -4,13 +4,13 @@
 // intial setup: setup configurations for express and sending reqs and importing queue arr for testing
 const sendRequest = require('supertest');
 const importApp = require('../server');
-const { sequelize, QueueEntry } = require('../tables');
+const { activeQueue } = require('../routes/userQueue');
 
 // test suite: 'Unit Tests for User Queue Module'
 describe('Unit Tests for User Module', () => {
-    // clear in-memory database before each test
-    beforeEach(async () => {
-        await sequelize.sync({ force: true });
+    // clear arr before each test
+    beforeEach(() => {
+        activeQueue.length = 0;
     });
 
     // test 1: will test input validation for payment details and other required fields
@@ -41,7 +41,7 @@ describe('Unit Tests for User Module', () => {
             cardNumber: "1234567898765432",
             expDate: "07/29",
             cvv: "123"
-        };
+        }
 
         // send request to api join route
         const response = await sendRequest(importApp).post('/api/queue/join').send(validExample);
@@ -55,13 +55,10 @@ describe('Unit Tests for User Module', () => {
     // test 3: will test join route and wait-time logic for second person joining behind the first person
     // expectec output: person should get position 2 and wait time = 30 (for academic advising in this case)
     test('Second person to join queue will be at position 2 and have wait time = 30', async () => {
-        // add hypothetical first person to database
-        await QueueEntry.create({
-            userName: "First person",
+        // add hypothetical first person to queue
+        activeQueue.push({
+            id: "First person",
             service: "Academic Advising",
-            position: 1,
-            queueDate: "2026-10-12",
-            queueTime: "07:00",
             status: "waiting"
         });
 
@@ -87,35 +84,30 @@ describe('Unit Tests for User Module', () => {
     });
 
     // test 4: will test leave route where user leaves or cancels a queue
-    // expected output: user should be able to leave successfully and their entry should be removed from database
+    // expected output: user should be able to leave successfully and their entry should be removed from activeQueue
     test('User leaves queue successfully', async () => {
-        // add hypothetical entry into database
-        const entry = await QueueEntry.create({
-            userName: "Person in queue",
+        // add hypothetical entry into queue
+        activeQueue.push({
+            id: "Person in queue",
             service: "Academic Advising",
-            position: 1,
-            queueDate: "2026-10-12",
-            queueTime: "07:00",
             status: "waiting"
         });
 
         // send request to api leave route
-        const response = await sendRequest(importApp).post('/api/queue/leave').send({ queueId: entry.id });
+        const response = await sendRequest(importApp).post('/api/queue/leave').send({ queueId: "Person in queue" });
 
-        // expected output: status code 200 / entry should be removed from database
+        // expected output: status code 200 / entry should be removed from activeQueue
         expect(response.statusCode).toBe(200);
-        const count = await QueueEntry.count();
-        expect(count).toBe(0);
+        expect(activeQueue.length).toBe(0);
     });
 
     // test 5: will test reschedule route for calendar feature
     // expected output: appt date and time should be updated successfully
     test('User reschedules appointment successfully', async () => {
-        // add hypothetical entry into database
-        const entry = await QueueEntry.create({
-            userName: "Reschedule User",
+        // add hypothetical entry into queue
+        activeQueue.push({
+            id: "Reschedule",
             service: "Academic Advising",
-            position: 1,
             queueDate: "2026-10-16",
             queueTime: "09:00",
             status: "waiting"
@@ -123,7 +115,7 @@ describe('Unit Tests for User Module', () => {
 
         // valid rescheduling details to send
         const reschedulePayload = {
-            queueId: entry.id,
+            queueId: "Reschedule",
             newDate: "2026-10-17",
             newTime: "10:00"
         };
@@ -133,30 +125,27 @@ describe('Unit Tests for User Module', () => {
 
         // expected output: status code 200 / date and time to update successfully
         expect(response.statusCode).toBe(200);
-        const updated = await QueueEntry.findByPk(entry.id);
-        expect(updated.queueDate).toBe("2026-10-17");
-        expect(updated.queueTime).toBe("10:00");
+        expect(activeQueue[0].queueDate).toBe("2026-10-17");
+        expect(activeQueue[0].queueTime).toBe("10:00");
     });
 
     // test 6: will test cancel route for calendar fearure
     // expetec output: appt status should be set to 'canceled'
     test('User cancels appointment successfully', async () => {
-        // add hypothetical entry into database
-        const entry = await QueueEntry.create({
-            userName: "Cancel User",
+        // add hypothetical entry into queue
+        activeQueue.push({
+            id: "Cancel",
             service: "Financial Aid Office",
-            position: 1,
             queueDate: "2026-10-16",
             queueTime: "05:00",
             status: "waiting"
         });
 
         // send request to api cancel route
-        const response = await sendRequest(importApp).put('/api/queue/cancel').send({ queueId: entry.id });
+        const response = await sendRequest(importApp).put('/api/queue/cancel').send({ queueId: "Cancel" });
 
         // expected output: status code 200 / target appt status = "Canceled"
         expect(response.statusCode).toBe(200);
-        const updated = await QueueEntry.findByPk(entry.id);
-        expect(updated.status).toBe("Canceled");
+        expect(activeQueue[0].status).toBe("Canceled");
     });
 });

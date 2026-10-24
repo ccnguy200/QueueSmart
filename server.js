@@ -4,7 +4,6 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const path = require('path');
 
-const { sequelize } = require('./tables');
 const { router: userQueueRouter } = require('./routes/userQueue');
 const { router: notificationRouter } = require('./routes/notifications');
 const { router: serviceRouter } = require('./routes/services');
@@ -59,15 +58,12 @@ app.get('/api/health', (req, res) => {
     res.send('QueueSmart API Server is running...');
 });
 
-// Sync SQLite Database and start listening if run directly
-sequelize.sync().then(() => {
-    console.log('SQLite Database Connected & Synced.');
-    if (require.main === module) {
-        app.listen(PORT, () => {
-            console.log(`QueueSmart Backend running on http://localhost:${PORT}`);
-        });
-    }
-});
+// Start listening if run directly
+if (require.main === module) {
+    app.listen(PORT, () => {
+        console.log(`QueueSmart Backend running on http://localhost:${PORT}`);
+    });
+}
 
 module.exports = app;
 module.exports.resetUsers = resetUsers;
