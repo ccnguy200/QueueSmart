@@ -1,12 +1,21 @@
 // Setup + in terminal (CTRL + shift + Y) use command 'npm test' to run unit testing 
 // (to install use 'npm install' in the console)
-const sendRequest = require('supertest');
-const importApp = require('../server');
+const request = require('supertest');
+const app = require('../server');
+const { sequelize } = require('../tables');
 const { resetUsers } = require('../server');
 
 describe('Unit Tests for Authentication', () => {
-    beforeEach(() => {
-        resetUsers();
+    beforeAll(async () => {
+        await sequelize.sync({force: true});
+    });
+
+    beforeEach(async () => {
+        await resetUsers();
+    });
+
+    afterAll(async () => {
+        await sequelize.close();
     });
 
     // Test 1: Incorrect Username (Login)
@@ -17,7 +26,7 @@ describe('Unit Tests for Authentication', () => {
             password: "incorrect"
         };
         
-        const response = await sendRequest(importApp).post('/api/auth/login').send(incorrectLogin);
+        const response = await request(app).post('/api/auth/login').send(incorrectLogin);
 
         // Expected Message: 401 error message w/ rejection
         expect(response.statusCode).toBe(401);
@@ -33,7 +42,7 @@ describe('Unit Tests for Authentication', () => {
             role: "user"
         };
         
-        const response = await sendRequest(importApp).post('/api/auth/register').send(incorrectInfo);
+        const response = await request(app).post('/api/auth/register').send(incorrectInfo);
 
         // Expected Message: 400 error message w/ rejection
         expect(response.statusCode).toBe(400);
@@ -50,7 +59,7 @@ describe('Unit Tests for Authentication', () => {
             role: "user"
         };
         
-        const response = await sendRequest(importApp).post('/api/auth/register').send(correctInfo);
+        const response = await request(app).post('/api/auth/register').send(correctInfo);
 
         // Expected Message: 200 (success)
         expect(response.statusCode).toBe(200);
@@ -70,7 +79,7 @@ describe('Unit Tests for Authentication', () => {
             cardCVV: "123"
         };
         
-        const response = await sendRequest(importApp).post('/api/auth/register').send(correctInfo);
+        const response = await request(app).post('/api/auth/register').send(correctInfo);
 
         // Expected Message: 200 (success)
         expect(response.statusCode).toBe(200);
@@ -81,7 +90,7 @@ describe('Unit Tests for Authentication', () => {
     // Expected Output: should return 200
     test('Return 200 message if the fields are correct for login', async () => {
         // Correct fields
-        await sendRequest(importApp).post('/api/auth/register').send({
+        await request(app).post('/api/auth/register').send({
             first: "AdminUsername@email.com",
             second: "Password12345",
             role: "admin",
@@ -90,7 +99,7 @@ describe('Unit Tests for Authentication', () => {
             cardCVV: "123"
         });
         
-        const response = await sendRequest(importApp).post('/api/auth/login').send({ email: "AdminUsername@email.com", password: "Password12345" });
+        const response = await request(app).post('/api/auth/login').send({ email: "AdminUsername@email.com", password: "Password12345" });
 
         // Expected Message: 200 (success)
         expect(response.statusCode).toBe(200);
@@ -108,9 +117,9 @@ describe('Unit Tests for Authentication', () => {
             cardExpiry: "12/30",
             cardCVV: "123"
         };
-        await sendRequest(importApp).post('/api/auth/register').send(info);
+        await request(app).post('/api/auth/register').send(info);
 
-        const response = await sendRequest(importApp)
+        const response = await request(app)
             .post('/api/auth/register')
             .send(info);
 
@@ -127,7 +136,7 @@ describe('Unit Tests for Authentication', () => {
             role: "superadmin"
         };
 
-        const response = await sendRequest(importApp).post('/api/auth/register').send(info);
+        const response = await request(app).post('/api/auth/register').send(info);
 
         expect(response.statusCode).toBe(400);
         expect(response.body.error).toBeDefined();
@@ -142,7 +151,7 @@ describe('Unit Tests for Authentication', () => {
             role: "user"
         };
 
-        const response = await sendRequest(importApp).post('/api/auth/register').send(info);
+        const response = await request(app).post('/api/auth/register').send(info);
 
         expect(response.statusCode).toBe(400);
         expect(response.body.error).toBeDefined();
