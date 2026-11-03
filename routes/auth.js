@@ -1,11 +1,14 @@
-const express = require('express');
-const router = express.Router();
-const users = {};
+// Authentication Module
+// For registering and logging in users and administrators.
 
-function resetUsers() {
-    for(const key in users) {
-        delete users[key];
-    }
+const express = require('express');
+// For encrypting passwords
+const bcrypt = require('bcryptjs');
+const { UserCredentials } = require('../tables');
+const router = express.Router();
+
+async function resetUsers() {
+    await UserCredentials.destroy({where: {}, truncate: true});
 }
 
 // Returns true if the text only has the numbers 0-9
@@ -18,65 +21,76 @@ function isAllDigits(text) {
     return true;
 }
 
-function checkLogin(input, output) {
-    const username = String(input.body.email || "").toLowerCase().trim();
+async function checkLogin(req, res) {
+    const email = String(req.body.email || "").toLowerCase().trim();
+    const password = String(req.body.password || '');
 
-    if(!users[username] || (users[username].password !== input.body.password)) {
-        return output.status(401).json({success: false, error: "Incorrect Login"});
+    const user = await UserCredentials.findOne({where: {email}});
+    if(!user) {
+        return res.status(401).json({success: false, error: "Incorrect Login"});
     }
-    output.json({success: true, role: users[username].role})
+
+    const ok = await bcrypt.compare(password, user.password);
+    
+    if (!ok) {
+        return res.status(401).json({success: false, error: "Incorrect Login"});
+    }
+
+    res.json({success: true, role: user.role})
 }
 
-function checkRegister(input, output) {
-    const username = String(input.body.first || "").toLowerCase().trim();
-    const password = input.body.second;
-    const role = input.body.role;
+async function checkRegister(req, res) {
+    const email = String(req.body.first || "").toLowerCase().trim();
+    const password = req.body.second;
+    const role = req.body.role;
 
 
-    if (!username || !password || !role) {
-        return output.status(400).json({ success: false, error: "Missing required fields!" });
+    if (!email || !password || !role) {
+        return res.status(400).json({ success: false, error: "Missing required fields!" });
     }
 
     if (role !== "user" && role !== "admin") {
-        return output.status(400).json({ success: false, error: "Role must be 'user' or 'admin'." });
+        return res.status(400).json({ success: false, error: "Role must be 'user' or 'admin'." });
     }
 
-    if (username.length > 100) {
-        return output.status(400).json({ success: false, error: "Username must be 100 characters or less." });
+    if (email.length > 100) {
+        return res.status(400).json({ success: false, error: "Username must be 100 characters or less." });
     }
 
     if (password.length < 8 || password.length > 15) {
-        return output.status(400).json({ success: false, error: "Password must be between 8 and 15 characters." });
+        return res.status(400).json({ success: false, error: "Password must be between 8 and 15 characters." });
     }
 
-    if(users[username]){
-        return output.status(409).json({success: false, error: "That email is already registered with an account!"});
+    const existing = await UserCredentials.findOne({where: {email}});
+    
+    if (existing) {
+        return res.status(409).json({success: false, error: "That email is already registered with an account!"})
     }
 
-    if(input.body.role === "admin"){
-        const cardNumber = String(input.body.cardNumber).trim();
-        const cardExpiry = String(input.body.cardExpiry).trim();
-        const cardCVV = String(input.body.cardCVV).trim();
+    if(role === "admin"){
+        const cardNumber = String(req.body.cardNumber || "").trim();
+        const cardExpiry = String(req.body.cardExpiry || "").trim();
+        const cardCVV = String(req.body.cardCVV || "").trim();
 
         if(!cardNumber || !cardExpiry || !cardCVV){
-            return output.status(400).json({success: false, error: "Admins must provide credit card information!"});
+            return res.status(400).json({success: false, error: "Admins must provide credit card information!"});
         }
 
         // Card number must be 16 digits
         if(cardNumber.length !== 16 || !isAllDigits(cardNumber)){
-            return output.status(400).json({success: false, error: "Card Number must be 16 digits (numbers only)!"});
+            return res.status(400).json({success: false, error: "Card Number must be 16 digits (numbers only)!"});
         }
 
         // Expiry must look like MM/YY
         let month = cardExpiry.substring(0, 2);
         let year = cardExpiry.substring(3, 5);
         if(cardExpiry.length !== 5 || cardExpiry[2] !== "/" || !isAllDigits(month) || !isAllDigits(year)){
-            return output.status(400).json({success: false, error: "Expiry must be in MM/YY format!"});
+            return res.status(400).json({success: false, error: "Expiry must be in MM/YY format!"});
         }
 
         // Month must be between 01 and 12
         if(Number(month) < 1 || Number(month) > 12){
-            return output.status(400).json({success: false, error: "Expiry month must be between 01 and 12!"});
+            return res.status(400).json({success: false, error: "Expiry month must be between 01 and 12!"});
         }
 
         // Card cannot be expired
@@ -84,21 +98,23 @@ function checkRegister(input, output) {
         let thisMonth = now.getMonth() + 1;
         let thisYear = now.getFullYear() - 2000;
         if(Number(year) < thisYear || (Number(year) === thisYear && Number(month) < thisMonth)){
-            return output.status(400).json({success: false, error: "This card has expired!"});
+            return res.status(400).json({success: false, error: "This card has expired!"});
         }
 
         // CVV must be 3 digits
         if(cardCVV.length !== 3 || !isAllDigits(cardCVV)){
-            return output.status(400).json({success: false, error: "CVV must be 3 digits!"});
+            return res.status(400).json({success: false, error: "CVV must be 3 digits!"});
         }
     }
 
-    users[username] = {password: input.body.second, role: input.body.role};
-    output.json({success: true, role: input.body.role});
+    const hashed = await bcrypt.hash(password, 10);
+    await UserCredentials.create({email, password: hashed, role})
+
+    res.json({success: true, role});
     
 }
 
-router.post('/login', checkLogin);
-router.post('/register', checkRegister);
+router.post('/login', (req, res, next) => checkLogin(req, res).catch(next));
+router.post('/register', (req, res, next) => checkRegister(req, res).catch(next));
 
 module.exports = { router, resetUsers };
