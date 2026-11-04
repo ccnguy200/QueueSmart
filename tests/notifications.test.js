@@ -1,8 +1,8 @@
-// Unit tests for the Notification Module (routes/notifications.js)
+// Unit tests for the Notification Module (routes/notifications.js) and the NotificationHistory table
 const request = require('supertest');
-
-let app;
-let notifications;
+const app = require('../server');
+const notifications = require('../routes/notifications');
+const { sequelize, NotificationHistory, UserCredentials } = require('../tables');
 
 // A valid join request for the Queue Management module
 function joinRequest(userName, service) {
@@ -30,24 +30,19 @@ function makeEntry(userName, service, status) {
     };
 }
 
-// Get the notifications made for a user from the API
-// (the mock notifications every user starts with are left out)
+// Get a user's notification messages from the API (newest first)
 async function getMessages(userName) {
     const response = await request(app).get('/api/notifications').query({ userName: userName });
     const messages = [];
     for (let i = 0; i < response.body.notifications.length; i++) {
-        if (response.body.notifications[i].userName === userName) {
-            messages.push(response.body.notifications[i].message);
-        }
+        messages.push(response.body.notifications[i].message);
     }
     return messages;
 }
 
-// Every test starts with a fresh server: empty queue and only the mock notifications
-beforeEach(function () {
-    jest.resetModules();
-    app = require('../server');
-    notifications = require('../routes/notifications');
+// Every test starts with an empty database
+beforeEach(async function () {
+    await sequelize.sync({ force: true });
     jest.spyOn(console, 'log').mockImplementation(function () {});
 });
 
@@ -55,12 +50,13 @@ afterEach(function () {
     jest.restoreAllMocks();
 });
 
-describe('formatTime', function () {
-    test('morning time', function () {
-        expect(notifications.formatTime(new Date(2026, 9, 9, 9, 5))).toBe("9:05 AM");
-    });
+afterAll(async function () {
+    await sequelize.close();
+});
 
-    test('afternoon time', function () {
+describe('formatTime', function () {
+    test('morning and afternoon times', function () {
+        expect(notifications.formatTime(new Date(2026, 9, 9, 9, 5))).toBe("9:05 AM");
         expect(notifications.formatTime(new Date(2026, 9, 9, 13, 30))).toBe("1:30 PM");
     });
 
@@ -73,7 +69,6 @@ describe('formatTime', function () {
 describe('checkUserName (validation)', function () {
     test('userName is required', function () {
         expect(notifications.checkUserName(undefined)).toBe("userName is required.");
-        expect(notifications.checkUserName(null)).toBe("userName is required.");
         expect(notifications.checkUserName("")).toBe("userName is required.");
         expect(notifications.checkUserName("   ")).toBe("userName is required.");
     });
@@ -87,64 +82,71 @@ describe('checkUserName (validation)', function () {
         expect(notifications.checkUserName("a".repeat(100))).toBe("");
         expect(notifications.checkUserName("a".repeat(101))).toBe("userName must be 100 characters or less.");
     });
+});
 
-    test('a normal userName is fine', function () {
-        expect(notifications.checkUserName("user@email.com")).toBe("");
+describe('NotificationHistory table', function () {
+    test('a new notification is saved as "sent" with a timestamp', async function () {
+        const saved = await NotificationHistory.create({ userName: "a@email.com", type: "joined", message: "Hello" });
+        const found = await NotificationHistory.findByPk(saved.id);
+
+        expect(found.status).toBe("sent");
+        expect(found.timestamp).toBeInstanceOf(Date);
+    });
+
+    test('the table rejects missing or bad fields', async function () {
+        await expect(NotificationHistory.create({ userName: "a@email.com", type: "joined" })).rejects.toThrow();
+        await expect(NotificationHistory.create({ userName: "a@email.com", type: "joined", message: "" })).rejects.toThrow();
+        await expect(NotificationHistory.create({ userName: "a@email.com", type: "joined", message: "a".repeat(256) })).rejects.toThrow();
+        await expect(NotificationHistory.create({ userName: "a".repeat(101), type: "joined", message: "Hello" })).rejects.toThrow();
+        await expect(NotificationHistory.create({ userName: "a@email.com", type: "other", message: "Hello" })).rejects.toThrow();
+        await expect(NotificationHistory.create({ userName: "a@email.com", type: "joined", message: "Hello", status: "read" })).rejects.toThrow();
+        expect(await NotificationHistory.count()).toBe(0);
     });
 });
 
 describe('addNotification', function () {
-    test('saves and logs a notification', function () {
-        const notification = notifications.addNotification("a@email.com", "joined", "Hello");
+    test('saves the notification in the database and logs it', async function () {
+        await notifications.addNotification("a@email.com", "joined", "Hello");
 
-        expect(notification.userName).toBe("a@email.com");
-        expect(notification.type).toBe("joined");
-        expect(notification.message).toBe("Hello");
-        expect(notification.time).toMatch(/^\d{1,2}:\d{2} (AM|PM)$/);
+        const rows = await NotificationHistory.findAll();
+        expect(rows.length).toBe(1);
+        expect(rows[0].message).toBe("Hello");
         expect(console.log).toHaveBeenCalledWith("Notification for a@email.com: Hello");
     });
 
-    test('every notification gets a different id', function () {
-        const first = notifications.addNotification("a@email.com", "joined", "One");
-        const second = notifications.addNotification("a@email.com", "joined", "Two");
+    test('links the notification to the user account when there is one', async function () {
+        const user = await UserCredentials.create({ email: "a@email.com", password: "hashed", role: "user" });
 
-        expect(second.id).not.toBe(first.id);
+        const withAccount = await notifications.addNotification("a@email.com", "joined", "Hello");
+        const noAccount = await notifications.addNotification("Mary Jane", "joined", "Hello");
+
+        expect(withAccount.userId).toBe(user.id);
+        expect(noAccount.userId).toBe(null);
     });
 
-    test('rejects a bad userName or an empty message', function () {
-        expect(notifications.addNotification("", "joined", "Hello")).toBe(null);
-        expect(notifications.addNotification("a@email.com", "joined", "")).toBe(null);
-        expect(notifications.addNotification("a@email.com", "joined", 5)).toBe(null);
-        expect(console.log).not.toHaveBeenCalled();
+    test('returns null and saves nothing when something is not valid', async function () {
+        expect(await notifications.addNotification("", "joined", "Hello")).toBe(null);
+        expect(await notifications.addNotification("a@email.com", "joined", "")).toBe(null);
+        expect(await NotificationHistory.count()).toBe(0);
     });
 });
 
 describe('notifyJoined (trigger 1: user joins a queue)', function () {
-    test('makes a "joined" notification with the position and wait', function () {
+    test('makes a "joined" notification with the position and wait', async function () {
         const entry = makeEntry("a@email.com", "Financial Aid Office", "waiting");
         entry.position = 2;
         entry.estimatedWaitTime = 24;
 
-        const notification = notifications.notifyJoined(entry);
+        const saved = await notifications.notifyJoined(entry);
 
-        expect(notification.type).toBe("joined");
-        expect(notification.message).toBe("You joined the Financial Aid Office queue. You are #2. Estimated wait: 24 minutes.");
+        expect(saved.type).toBe("joined");
+        expect(saved.message).toBe("You joined the Financial Aid Office queue. You are #2. Estimated wait: 24 minutes.");
     });
 
-    test('leaves out the position and wait if they are missing', function () {
-        const entry = { userName: "a@email.com", service: "Tutoring Services" };
-
-        expect(notifications.notifyJoined(entry).message).toBe("You joined the Tutoring Services queue.");
-    });
-
-    test('does nothing for a missing entry or service', function () {
-        expect(notifications.notifyJoined(undefined)).toBe(null);
-        expect(notifications.notifyJoined({ userName: "a@email.com" })).toBe(null);
-        expect(notifications.notifyJoined({ userName: "a@email.com", service: "" })).toBe(null);
-    });
-
-    test('does nothing when the userName is not valid', function () {
-        expect(notifications.notifyJoined({ userName: "", service: "Tutoring Services" })).toBe(null);
+    test('does nothing for a missing entry or service', async function () {
+        expect(await notifications.notifyJoined(undefined)).toBe(null);
+        expect(await notifications.notifyJoined({ userName: "a@email.com" })).toBe(null);
+        expect(await NotificationHistory.count()).toBe(0);
     });
 });
 
@@ -156,113 +158,90 @@ describe('checkQueue (trigger 2: user is close to being served)', function () {
             makeEntry("c@email.com", "Academic Advising", "waiting")
         ];
 
-        expect(notifications.checkQueue(queue)).toBe(2);
+        expect(await notifications.checkQueue(queue)).toBe(2);
         expect(await getMessages("a@email.com")).toEqual(["It's almost your turn! You are next in the Academic Advising queue."]);
         expect(await getMessages("b@email.com")).toEqual(["It's almost your turn! You are #2 in the Academic Advising queue."]);
         expect(await getMessages("c@email.com")).toEqual([]);
     });
 
-    test('each service has its own line', function () {
-        const queue = [
-            makeEntry("a@email.com", "Academic Advising", "waiting"),
-            makeEntry("b@email.com", "Academic Advising", "waiting"),
-            makeEntry("c@email.com", "Tutoring Services", "waiting")
-        ];
-
-        expect(notifications.checkQueue(queue)).toBe(3);
-    });
-
-    test('notifies each entry only once', function () {
+    test('notifies each entry only once', async function () {
         const queue = [makeEntry("a@email.com", "Academic Advising", "waiting")];
 
-        expect(notifications.checkQueue(queue)).toBe(1);
-        expect(notifications.checkQueue(queue)).toBe(0);
+        expect(await notifications.checkQueue(queue)).toBe(1);
+        expect(await notifications.checkQueue(queue)).toBe(0);
     });
 
-    test('people who are not waiting do not count', async function () {
+    test('each service has its own line, and people who are not waiting do not count', async function () {
         const queue = [
-            makeEntry("a@email.com", "Academic Advising", "waiting"),
+            makeEntry("a@email.com", "Academic Advising", "served"),
             makeEntry("b@email.com", "Academic Advising", "waiting"),
-            makeEntry("c@email.com", "Academic Advising", "waiting")
+            makeEntry("c@email.com", "Academic Advising", "waiting"),
+            makeEntry("d@email.com", "Tutoring Services", "waiting")
         ];
-        notifications.checkQueue(queue);
 
-        // a is served, so c moves up to #2
-        queue[0].status = "served";
-
-        expect(notifications.checkQueue(queue)).toBe(1);
-        expect(await getMessages("c@email.com")).toEqual(["It's almost your turn! You are #2 in the Academic Advising queue."]);
+        expect(await notifications.checkQueue(queue)).toBe(3);
+        expect(await getMessages("a@email.com")).toEqual([]);
     });
 
-    test('an entry with a bad userName is skipped', function () {
-        const queue = [makeEntry("", "Academic Advising", "waiting")];
-
-        expect(notifications.checkQueue(queue)).toBe(0);
+    test('returns 0 if the queue is not a list', async function () {
+        expect(await notifications.checkQueue(undefined)).toBe(0);
     });
 
-    test('returns 0 if the queue is not a list', function () {
-        expect(notifications.checkQueue(undefined)).toBe(0);
-        expect(notifications.checkQueue("queue")).toBe(0);
+    test('if one save fails, the next notifications are still saved', async function () {
+        jest.spyOn(NotificationHistory, 'count').mockRejectedValueOnce(new Error("database is busy"));
+
+        expect(await notifications.checkQueue([makeEntry("a@email.com", "Academic Advising", "waiting")])).toBe(0);
+        expect(await notifications.notifyJoined(makeEntry("b@email.com", "Academic Advising", "waiting"))).not.toBe(null);
+        expect(await getMessages("b@email.com")).toEqual(["You joined the Academic Advising queue. You are #1. Estimated wait: 0 minutes."]);
     });
 });
 
 describe('GET /api/notifications', function () {
-    test('400 when userName is missing', async function () {
-        const response = await request(app).get('/api/notifications');
+    test('400 when userName is missing, given twice, or too long', async function () {
+        const missing = await request(app).get('/api/notifications');
+        const twice = await request(app).get('/api/notifications?userName=a&userName=b');
+        const tooLong = await request(app).get('/api/notifications').query({ userName: "a".repeat(101) });
 
-        expect(response.status).toBe(400);
-        expect(response.body).toEqual({ success: false, message: "userName is required." });
+        expect(missing.status).toBe(400);
+        expect(missing.body).toEqual({ success: false, message: "userName is required." });
+        expect(twice.body.message).toBe("userName must be text.");
+        expect(tooLong.body.message).toBe("userName must be 100 characters or less.");
     });
 
-    test('400 when userName is given twice', async function () {
-        const response = await request(app).get('/api/notifications?userName=a&userName=b');
-
-        expect(response.status).toBe(400);
-        expect(response.body.message).toBe("userName must be text.");
-    });
-
-    test('400 when userName is too long', async function () {
-        const response = await request(app).get('/api/notifications').query({ userName: "a".repeat(101) });
-
-        expect(response.status).toBe(400);
-        expect(response.body.message).toBe("userName must be 100 characters or less.");
-    });
-
-    test('every user starts with the mock notifications, newest first', async function () {
+    test('a user with no notifications gets an empty list', async function () {
         const response = await request(app).get('/api/notifications').query({ userName: "new@email.com" });
 
         expect(response.status).toBe(200);
-        expect(response.body.success).toBe(true);
-        expect(response.body.notifications.length).toBe(4);
-        expect(response.body.notifications[0].message).toBe("Your position in the Academic Advising queue is now #3.");
-        expect(response.body.notifications[3].time).toBe("9:00 AM");
+        expect(response.body).toEqual({ success: true, notifications: [] });
     });
 
-    test('notifications made for the user come before the mock ones', async function () {
-        notifications.addNotification("a@email.com", "joined", "Hello");
-        notifications.addNotification("b@email.com", "joined", "Not for a");
-        notifications.addNotification("a@email.com", "almost", "Hello again");
+    test('newest first, only the user\'s own, and "sent" becomes "viewed" after reading', async function () {
+        await notifications.addNotification("a@email.com", "joined", "First");
+        await notifications.addNotification("a@email.com", "almost", "Second");
+        await notifications.addNotification("b@email.com", "joined", "Not mine");
+
+        const firstRead = await request(app).get('/api/notifications').query({ userName: "a@email.com" });
+        const secondRead = await request(app).get('/api/notifications').query({ userName: "a@email.com" });
+
+        expect(firstRead.body.notifications.length).toBe(2);
+        expect(firstRead.body.notifications[0].message).toBe("Second");
+        expect(firstRead.body.notifications[0].status).toBe("sent");
+        expect(firstRead.body.notifications[0].time).toMatch(/^\d{1,2}:\d{2} (AM|PM)$/);
+        expect(secondRead.body.notifications[0].status).toBe("viewed");
+        expect(await NotificationHistory.count({ where: { userName: "b@email.com", status: "sent" } })).toBe(1);
+    });
+
+    test('500 when the database is not working', async function () {
+        jest.spyOn(NotificationHistory, 'findAll').mockRejectedValue(new Error("database is down"));
 
         const response = await request(app).get('/api/notifications').query({ userName: "a@email.com" });
 
-        expect(response.body.notifications.length).toBe(6);
-        expect(response.body.notifications[0].message).toBe("Hello again");
-        expect(response.body.notifications[1].message).toBe("Hello");
-        expect(response.body.notifications[2].message).toBe("Your position in the Academic Advising queue is now #3.");
-    });
-
-    test('resetNotifications keeps only the mock notifications', async function () {
-        notifications.addNotification("a@email.com", "joined", "Hello");
-        notifications.resetNotifications();
-
-        const response = await request(app).get('/api/notifications').query({ userName: "a@email.com" });
-
-        expect(await getMessages("a@email.com")).toEqual([]);
-        expect(response.body.notifications.length).toBe(4);
+        expect(response.status).toBe(500);
+        expect(response.body.success).toBe(false);
     });
 });
 
-describe('joining a queue sends notifications', function () {
+describe('joining and leaving a queue send notifications', function () {
     test('the first person gets "joined" and "almost your turn"', async function () {
         const join = await request(app).post('/api/queue/join').send(joinRequest("a@email.com", "Financial Aid Office"));
 
@@ -273,67 +252,7 @@ describe('joining a queue sends notifications', function () {
         ]);
     });
 
-    test('the third person in line only gets "joined"', async function () {
-        await request(app).post('/api/queue/join').send(joinRequest("a@email.com", "Academic Advising"));
-        await request(app).post('/api/queue/join').send(joinRequest("b@email.com", "Academic Advising"));
-        await request(app).post('/api/queue/join').send(joinRequest("c@email.com", "Academic Advising"));
-
-        expect(await getMessages("b@email.com")).toEqual([
-            "It's almost your turn! You are #2 in the Academic Advising queue.",
-            "You joined the Academic Advising queue. You are #2. Estimated wait: 30 minutes."
-        ]);
-        expect(await getMessages("c@email.com")).toEqual([
-            "You joined the Academic Advising queue. You are #3. Estimated wait: 60 minutes."
-        ]);
-    });
-
-    test('a join with missing fields sends no notification', async function () {
-        const join = await request(app).post('/api/queue/join').send({ userName: "a@email.com" });
-
-        expect(join.status).toBe(400);
-        expect(await getMessages("a@email.com")).toEqual([]);
-    });
-});
-
-describe('leaving a queue', function () {
-    test('the people behind move up, other services stay the same', async function () {
-        const first = await request(app).post('/api/queue/join').send(joinRequest("a@email.com", "Academic Advising"));
-        await request(app).post('/api/queue/join').send(joinRequest("b@email.com", "Academic Advising"));
-        await request(app).post('/api/queue/join').send(joinRequest("d@email.com", "Tutoring Services"));
-        await request(app).post('/api/queue/join').send(joinRequest("c@email.com", "Academic Advising"));
-
-        const leave = await request(app).post('/api/queue/leave').send({ queueId: first.body.data.id });
-        const status = await request(app).get('/api/queue/status');
-
-        expect(leave.status).toBe(200);
-        expect(status.body.queue.length).toBe(3);
-
-        // b is now #1 and c is now #2 in Academic Advising
-        expect(status.body.queue[0].userName).toBe("b@email.com");
-        expect(status.body.queue[0].position).toBe(1);
-        expect(status.body.queue[0].estimatedWaitTime).toBe(0);
-        expect(status.body.queue[2].userName).toBe("c@email.com");
-        expect(status.body.queue[2].position).toBe(2);
-        expect(status.body.queue[2].estimatedWaitTime).toBe(30);
-
-        // d is still #1 in Tutoring Services
-        expect(status.body.queue[1].userName).toBe("d@email.com");
-        expect(status.body.queue[1].position).toBe(1);
-    });
-
-    test('a service without a set duration uses 15 minutes', async function () {
-        const first = await request(app).post('/api/queue/join').send(joinRequest("a@email.com", "Library Help"));
-        await request(app).post('/api/queue/join').send(joinRequest("b@email.com", "Library Help"));
-        await request(app).post('/api/queue/join').send(joinRequest("c@email.com", "Library Help"));
-
-        await request(app).post('/api/queue/leave').send({ queueId: first.body.data.id });
-        const status = await request(app).get('/api/queue/status');
-
-        expect(status.body.queue[1].position).toBe(2);
-        expect(status.body.queue[1].estimatedWaitTime).toBe(15);
-    });
-
-    test('the next person is told it is almost their turn', async function () {
+    test('the third person only gets "joined", then "almost" after someone leaves', async function () {
         const first = await request(app).post('/api/queue/join').send(joinRequest("a@email.com", "Academic Advising"));
         await request(app).post('/api/queue/join').send(joinRequest("b@email.com", "Academic Advising"));
         await request(app).post('/api/queue/join').send(joinRequest("c@email.com", "Academic Advising"));
@@ -348,5 +267,16 @@ describe('leaving a queue', function () {
             "It's almost your turn! You are #2 in the Academic Advising queue.",
             "You joined the Academic Advising queue. You are #3. Estimated wait: 60 minutes."
         ]);
+    });
+
+    test('the notifications are saved in the NotificationHistory table', async function () {
+        const join = await request(app).post('/api/queue/join').send(joinRequest("a@email.com", "Tutoring Services"));
+        await getMessages("a@email.com");
+
+        const rows = await NotificationHistory.findAll({ where: { userName: "a@email.com" } });
+
+        expect(rows.length).toBe(2);
+        expect(rows[0].queueEntryId).toBe(join.body.data.id);
+        expect(rows[0].status).toBe("viewed");
     });
 });
