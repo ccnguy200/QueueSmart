@@ -1,401 +1,554 @@
-/* General */
+/* ============================================================
+   QueueSmart — design system
+   A single shared stylesheet for every screen.
+   ============================================================ */
+
+:root {
+    /* Brand palette */
+    --primary: #2563eb;          /* indigo blue */
+    --primary-dark: #1d4ed8;
+    --primary-light: #eff6ff;    /* pale blue tint */
+    --accent: #0ea5e9;           /* sky blue */
+
+    /* Neutrals */
+    --bg: #f1f5f9;               /* page background */
+    --surface: #ffffff;          /* cards */
+    --text: #0f172a;             /* headings / body */
+    --text-muted: #475569;       /* secondary text (4.9:1 on white) */
+    --border: #e2e8f0;           /* hairline borders */
+
+    /* Semantic */
+    --green: #15803d;
+    --green-bg: #dcfce7;
+    --red: #b91c1c;
+    --red-bg: #fee2e2;
+    --amber: #b45309;
+    --amber-bg: #fef3c7;
+    --slate-bg: #e2e8f0;
+
+    --radius: 8px;
+    --shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+}
+
+* {
+    box-sizing: border-box;
+}
+
 body {
-   font-family: Georgia;
-   color: darkblue;
-   background: rgb(224, 231, 235);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        "Helvetica Neue", Arial, sans-serif;
+    color: var(--text);
+    background: var(--bg);
+    margin: 0;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 {
+    color: var(--text);
+    font-weight: 700;
+    letter-spacing: -0.01em;
 }
 
 h1 {
-   color: darkorange;
+    font-size: 1.6rem;
+    margin: 24px 20px 8px;
 }
 
-/* For lists + links */
-a:link {
-   color: darkblue; 
-}   
+h2 {
+    font-size: 1.15rem;
+    margin: 0;
+}
+
+h3 {
+    font-size: 1.05rem;
+    margin: 0 0 10px;
+}
+
+p {
+    margin: 4px 0;
+}
+
+a {
+    color: var(--primary);
+}
 
 a:visited {
-   color: darkblue;  
-}   
+    color: var(--primary);
+}
+
+/* ------------------------------------------------------------
+   Header + navigation
+   ------------------------------------------------------------ */
+header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px 20px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    box-shadow: var(--shadow);
+}
+
+header h2 {
+    color: var(--primary);
+    font-weight: 800;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.brand img {
+    display: block;
+}
 
 nav ul {
-   list-style-type: none;
-   padding: 10px 0;
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin: 0;
+    padding: 0;
 }
 
 nav li {
-   display: inline-block;
-   margin: 8px;
+    margin: 0;
 }
 
 nav li a {
-   display: inline-block;
-   text-decoration: none;  
-   padding: 13px 25px;
-   background-color: lightblue;  
-   border-radius: 5px;
-
+    display: inline-block;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: background 0.15s, color 0.15s;
 }
 
 nav li a:hover {
-   color: white;
-   background-color: darkblue;    
+    color: var(--primary);
+    background: var(--primary-light);
 }
 
+nav li a.active {
+    color: #fff;
+    background: var(--primary);
+    font-weight: 700;
+}
 
-/* For borders + containers */
+/* ------------------------------------------------------------
+   Containers
+   ------------------------------------------------------------ */
+.feature,
+.card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 18px 20px;
+    margin: 0 20px 16px;
+    overflow-x: auto;
+}
+
 .feature {
-   border-radius: 10px;
-   background: white;
-   padding: 2px 15px 20px 15px;
-   margin: 10px 0;
-   display: flex;
-   flex-direction: column;
-   overflow-x: auto;   /* wide tables scroll inside the box instead of off the page */
+    display: flex;
+    flex-direction: column;
 }
 
 .feature-header {
-   border-radius: 10px;
-   background: white;
-   padding: 2px 15px 20px 15px;
-   margin: 10px 0;
-   display: flex;
-   flex-direction: row;
-   flex-wrap: wrap;   /* on narrow screens the title moves under the logo */
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
 }
 
 .feature-right {
-   margin-left: 50px;
-   overflow-wrap: anywhere;   /* a long word can break instead of going outside the box */
+    overflow-wrap: anywhere;
 }
 
-/* Cards (white containers used across the screens) */
-.card {
-   border-radius: 10px;
-   background: white;
-   padding: 15px 20px;
-   margin: 10px 0;
-   overflow-x: auto;   /* wide tables scroll inside the card instead of off the page */
-}
-
-/* Tables */
+/* ------------------------------------------------------------
+   Tables
+   ------------------------------------------------------------ */
 table {
-   width: 100%;
-   border-collapse: collapse;
-   margin-top: 10px;
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 8px;
+    font-size: 0.95rem;
 }
 
 th, td {
-   text-align: left;
-   padding: 10px;
-   border-bottom: 1px solid #ccc;
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
 }
 
 th {
-   background-color: lightblue;
+    background: #f8fafc;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
 }
 
 tr:hover td {
-   background-color: #f2f7fa;
+    background: #f8fafc;
 }
 
-/* Forms */
+/* ------------------------------------------------------------
+   Forms
+   ------------------------------------------------------------ */
 label {
-   display: block;
-   font-weight: bold;
-   margin-bottom: 4px;
+    display: block;
+    font-weight: 600;
+    margin-bottom: 4px;
+    font-size: 0.9rem;
 }
 
 input, select, textarea {
-   font-family: inherit;
-   font-size: 1em;
-   padding: 7px;
-   width: 100%;
-   max-width: 420px;
-   border: 1px solid #999;
-   border-radius: 4px;
-   box-sizing: border-box;
+    font-family: inherit;
+    font-size: 0.95rem;
+    padding: 9px 12px;
+    width: 100%;
+    max-width: 440px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--text);
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+input.input-error, select.input-error, textarea.input-error {
+    border-color: var(--red);
+    box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.12);
 }
 
 textarea {
-   resize: vertical;
-   min-height: 70px;
+    resize: vertical;
+    min-height: 72px;
 }
 
 .form-group {
-   margin-bottom: 14px;
+    margin-bottom: 14px;
 }
 
 .required {
-   color: firebrick;
+    color: var(--red);
 }
 
 .hint {
-   font-size: 0.85em;
-   color: #555;
-   margin: 4px 0 0 0;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    margin: 4px 0 0;
 }
 
-/* Buttons */
+/* ------------------------------------------------------------
+   Buttons
+   ------------------------------------------------------------ */
 .btn, .btn-secondary, .btn-danger {
-   display: inline-block;
-   border: none;
-   border-radius: 4px;
-   padding: 8px 16px;
-   font-family: inherit;
-   font-size: 0.95em;
-   cursor: pointer;
-   text-decoration: none;
+    display: inline-block;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    padding: 9px 16px;
+    font-family: inherit;
+    font-size: 0.92rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
 
 .btn {
-   background-color: darkblue;
-   color: white;
+    background: var(--primary);
+    color: #fff;
 }
 
 .btn:hover {
-   background-color: lightblue;
-   color: darkblue;
+    background: var(--primary-dark);
+    color: #fff;
 }
 
 .btn-secondary {
-   background-color: lightblue;
-   color: darkblue;
+    background: var(--surface);
+    color: var(--primary);
+    border-color: var(--primary);
 }
 
 .btn-secondary:hover {
-   background-color: darkblue;
-   color: white;
+    background: var(--primary-light);
+    color: var(--primary);
 }
 
 .btn-danger {
-   background-color: firebrick;
-   color: white;
+    background: var(--red);
+    color: #fff;
 }
 
 .btn-danger:hover {
-   background-color: #8b1a1a;
+    background: #991b1b;
+    color: #fff;
 }
 
-/* Disabled buttons look grey and cannot be clicked */
 .btn:disabled, .btn-secondary:disabled, .btn-danger:disabled {
-   background-color: lightgray;
-   color: gray;
-   cursor: not-allowed;
+    opacity: 0.45;
+    cursor: not-allowed;
 }
 
-/* Keep button links readable (a:link / a:visited would otherwise override the colour) */
-a.btn:link, a.btn:visited {
-   color: white;
-}
+a.btn:link, a.btn:visited { color: #fff; }
+a.btn:hover { color: #fff; }
+a.btn-secondary:link, a.btn-secondary:visited { color: var(--primary); }
+a.btn-secondary:hover { color: var(--primary); }
+a.btn-danger:link, a.btn-danger:visited { color: #fff; }
+a.btn-danger:hover { color: #fff; }
 
-a.btn-secondary:link, a.btn-secondary:visited {
-   color: darkblue;
-}
-
-a.btn-danger:link, a.btn-danger:visited {
-   color: white;
-}
-
-/* Keep the hover colour on button links too */
-a.btn:hover {
-   color: darkblue;
-}
-
-a.btn-secondary:hover {
-   color: white;
-}
-
-.actions button {
-   margin-right: 5px;
-   margin-bottom: 4px;
+.actions button,
+.toolbar button,
+.toolbar a {
+    margin: 2px 6px 2px 0;
 }
 
 .toolbar {
-   margin-top: 12px;
+    margin-top: 14px;
 }
 
-.toolbar button, .toolbar a {
-   margin-right: 8px;
-   margin-bottom: 6px;
-}
-
-/* Badges */
+/* ------------------------------------------------------------
+   Badges
+   ------------------------------------------------------------ */
 .badge {
-   display: inline-block;
-   padding: 3px 10px;
-   border-radius: 12px;
-   font-size: 0.85em;
-   font-weight: bold;
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 1.4;
 }
 
 .badge-open, .badge-served, .badge-low {
-   background-color: #d7f0dd;
-   color: #1b6b35;
+    background: var(--green-bg);
+    color: var(--green);
 }
 
 .badge-closed, .badge-high, .badge-missed {
-   background-color: #f6d7d7;
-   color: #97231f;
+    background: var(--red-bg);
+    color: var(--red);
 }
 
 .badge-medium, .badge-ready {
-   background-color: #fdf0d0;
-   color: #8a6100;
+    background: var(--amber-bg);
+    color: var(--amber);
 }
 
 .badge-waiting, .badge-left {
-   background-color: lightblue;
-   color: darkblue;
+    background: var(--slate-bg);
+    color: var(--text-muted);
 }
 
-/* Summary + stat blocks */
+/* ------------------------------------------------------------
+   Summary / stats
+   ------------------------------------------------------------ */
 .summary {
-   display: flex;
-   flex-wrap: wrap;
-   gap: 15px;
-   margin: 15px 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin: 16px 0;
 }
 
 .summary .card {
-   flex: 1 1 160px;
-   margin: 0;
-   text-align: center;
+    flex: 1 1 160px;
+    margin: 0;
+    text-align: center;
 }
 
 .stat {
-   background-color: rgb(224, 231, 235);
-   border-radius: 6px;
-   padding: 10px 16px;
-   min-width: 150px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    min-width: 150px;
 }
 
 .number {
-   font-size: 1.6em;
-   font-weight: bold;
-   margin: 2px 0 0 0;
+    font-size: 1.7rem;
+    font-weight: 800;
+    margin: 2px 0 0;
+    color: var(--primary);
 }
 
 .summary .number {
-   font-size: 2em;
-   margin: 4px 0;
+    font-size: 2rem;
+    margin: 4px 0 0;
 }
 
-/* Current-status block (queue status screen) */
+/* ------------------------------------------------------------
+   Queue status screen
+   ------------------------------------------------------------ */
 .current {
-   display: flex;
-   flex-wrap: wrap;
-   gap: 30px;
-   align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    align-items: center;
 }
 
 .current .label {
-   font-size: 0.9em;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    font-weight: 600;
 }
 
 .current .value {
-   font-size: 1.8em;
-   font-weight: bold;
+    font-size: 1.7rem;
+    font-weight: 800;
 }
 
-/* Progress tracker (queue status screen) */
 .tracker {
-   display: flex;
-   flex-wrap: wrap;
-   gap: 10px;
-   margin-top: 15px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 14px;
 }
 
 .step {
-   flex: 1 1 120px;
-   text-align: center;
-   padding: 10px;
-   border-radius: 6px;
-   background-color: rgb(224, 231, 235);
-   color: #555;
+    flex: 1 1 120px;
+    text-align: center;
+    padding: 10px;
+    border-radius: 8px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-weight: 600;
 }
 
 .step.done {
-   background-color: #d7f0dd;
-   color: #1b6b35;
-   font-weight: bold;
+    background: var(--green-bg);
+    border-color: transparent;
+    color: var(--green);
 }
 
 .step.active {
-   background-color: darkblue;
-   color: white;
-   font-weight: bold;
+    background: var(--primary);
+    border-color: transparent;
+    color: #fff;
 }
 
-/* Status updates list (queue status screen) */
 .updates {
-   list-style: none;
-   padding: 0;
-   margin: 0;
+    list-style: none;
+    margin: 0;
+    padding: 0;
 }
 
 .updates li {
-   padding: 10px;
-   border-bottom: 1px solid #ddd;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
 }
 
 .updates li:last-child {
-   border-bottom: none;
+    border-bottom: none;
 }
 
 .updates .time {
-   color: #555;
-   font-size: 0.85em;
+    color: var(--text-muted);
+    font-size: 0.8rem;
 }
 
-/* Highlight the next person to be served (queue management) */
 .next-up td {
-   background-color: #e8f4ea;
-   font-weight: bold;
+    background: var(--primary-light);
+    font-weight: 600;
 }
 
-/* Empty-state text */
 .empty {
-   color: #555;
-   font-style: italic;
-   padding: 12px 0;
+    color: var(--text-muted);
+    font-style: italic;
+    padding: 12px 0;
 }
 
-/* Pop-ups (popup.js): dark background over the whole page */
+/* ------------------------------------------------------------
+   Pop-ups (custom alert / confirm)
+   ------------------------------------------------------------ */
 .popup-overlay {
-   position: fixed;
-   top: 0;
-   left: 0;
-   right: 0;
-   bottom: 0;
-   background-color: rgba(0, 0, 0, 0.4);
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   z-index: 100;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
 }
 
-/* White box in the middle, same look as the cards */
 .popup-box {
-   background: white;
-   border-radius: 10px;
-   border-top: 5px solid darkorange;
-   padding: 20px 25px;
-   width: 85%;
-   max-width: 400px;
-   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    background: var(--surface);
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.25);
+    padding: 20px 24px;
+    max-width: 420px;
+    width: calc(100% - 40px);
 }
 
 .popup-box p {
-   margin: 0 0 20px 0;
-   line-height: 1.4;
+    margin: 0 0 16px;
+    font-size: 1rem;
 }
 
-/* Buttons on the right */
 .popup-buttons {
-   text-align: right;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
 }
 
 .popup-buttons button {
-   margin-left: 8px;
+    margin: 0;
+}
+
+/* ------------------------------------------------------------
+   Accessibility: keyboard focus
+   ------------------------------------------------------------ */
+.btn:focus-visible,
+.btn-secondary:focus-visible,
+.btn-danger:focus-visible,
+nav li a:focus-visible,
+a:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------
+   Responsive
+   ------------------------------------------------------------ */
+@media (max-width: 640px) {
+    header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    nav ul {
+        gap: 2px;
+    }
+
+    h1 {
+        margin-left: 16px;
+        margin-right: 16px;
+    }
+
+    .feature, .card {
+        margin-left: 16px;
+        margin-right: 16px;
+    }
+
+    input, select, textarea {
+        max-width: 100%;
+    }
 }
