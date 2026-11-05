@@ -1,54 +1,66 @@
-// Unit tests for the History module
+// Unit tests for the History module (database-backed)
 const request = require('supertest');
 const app = require('../server');
-const { history, recordEntry, resetHistory } = require('../routes/history');
+const { sequelize } = require('../tables');
+const { recordEntry } = require('../routes/history');
 
 describe('History Module', function () {
-    beforeEach(function () {
-        resetHistory();
+    beforeEach(async () => {
+        await sequelize.sync({ force: true });
     });
 
-    test('starts with the mock history', async function () {
+    afterAll(async () => {
+        await sequelize.close();
+    });
+
+    test('starts empty', async () => {
         const res = await request(app).get('/api/history');
         expect(res.statusCode).toBe(200);
-        expect(res.body.history.length).toBe(6);
+        expect(res.body.history.length).toBe(0);
     });
 
-    test('filters by outcome', async function () {
+    test('recordEntry adds a record that is then listed', async () => {
+        await recordEntry("bob@email.com", "Academic Advising", "Served", 30);
+
+        const res = await request(app).get('/api/history');
+        expect(res.body.history.length).toBe(1);
+        expect(res.body.history[0].userName).toBe("bob@email.com");
+        expect(res.body.history[0].outcome).toBe("Served");
+    });
+
+    test('filters by outcome', async () => {
+        await recordEntry("bob@email.com", "Academic Advising", "Served", 30);
+        await recordEntry("carol@email.com", "Tutoring Services", "Left Queue", 5);
+
         const res = await request(app).get('/api/history').query({ outcome: "Served" });
-        expect(res.body.history.length).toBeGreaterThan(0);
-        for (let i = 0; i < res.body.history.length; i++) {
-            expect(res.body.history[i].outcome).toBe("Served");
-        }
+        expect(res.body.history.length).toBe(1);
+        expect(res.body.history[0].outcome).toBe("Served");
     });
 
-    test('filters by userName', async function () {
-        const res = await request(app).get('/api/history').query({ userName: "user@email.com" });
-        expect(res.body.history.length).toBe(6);
+    test('filters by userName', async () => {
+        await recordEntry("bob@email.com", "Academic Advising", "Served", 30);
+        await recordEntry("carol@email.com", "Tutoring Services", "Served", 5);
+
+        const res = await request(app).get('/api/history').query({ userName: "carol@email.com" });
+        expect(res.body.history.length).toBe(1);
+        expect(res.body.history[0].userName).toBe("carol@email.com");
     });
 
-    test('recordEntry adds a new record at the top', function () {
-        const before = history.length;
-        recordEntry("bob@email.com", "Academic Advising", "Served", 30);
-        expect(history.length).toBe(before + 1);
-        expect(history[0].userName).toBe("bob@email.com");
-        expect(history[0].outcome).toBe("Served");
-    });
-
-    test('recordEntry rejects a bad outcome', function () {
-        const before = history.length;
-        const rec = recordEntry("bob@email.com", "Academic Advising", "Weird", 30);
+    test('recordEntry rejects a bad outcome', async () => {
+        const rec = await recordEntry("bob@email.com", "Academic Advising", "Weird", 30);
         expect(rec).toBeNull();
-        expect(history.length).toBe(before);
+
+        const res = await request(app).get('/api/history');
+        expect(res.body.history.length).toBe(0);
     });
 
-    test('recordEntry rejects a missing user name', function () {
-        const rec = recordEntry("", "Academic Advising", "Served", 30);
+    test('recordEntry rejects a missing user name', async () => {
+        const rec = await recordEntry("", "Academic Advising", "Served", 30);
         expect(rec).toBeNull();
     });
 
-    test('recordEntry rejects a missing service', function () {
-        const rec = recordEntry("bob@email.com", "", "Served", 30);
+    test('recordEntry rejects a missing service', async () => {
+        const rec = await recordEntry("bob@email.com", "", "Served", 30);
         expect(rec).toBeNull();
     });
 });

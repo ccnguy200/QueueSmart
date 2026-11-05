@@ -1,57 +1,54 @@
 // Queue Management Module (Admin side)
-// Lets an administrator view the current queue, serve the next user, and reorder users
-// Note: no database yet, the queue is kept in memory while the server is running
+// Lets an administrator view the queue, serve the next user, and reorder users
+// (persisted in SQLite via the QueueEntry table)
 const express = require('express');
 const router = express.Router();
 
-const { activeQueue, serviceDuration } = require('./userQueue');
-const { services } = require('./services');
+const { Service, QueueEntry } = require('../tables');
+const { serviceDuration } = require('./services');
 const history = require('./history');
 const notifications = require('./notifications');
 
 // Higher number = higher priority (used when deciding who to serve next)
 const PRIORITY_ORDER = { "High": 3, "Medium": 2, "Low": 1 };
 
-// Find a service's priority by its name (defaults to Medium)
-function priorityOf(serviceName) {
-    for (let i = 0; i < services.length; i++) {
-        if (services[i].name === serviceName) {
-            return services[i].priority;
-        }
-    }
-    return "Medium";
+// A service's priority by name (defaults to Medium)
+async function priorityOf(serviceName) {
+    const service = await Service.findOne({ where: { name: serviceName } });
+    return service ? service.priority : "Medium";
 }
 
-// Find the first waiting entry for a service (arrival order), or -1
-function frontIndexOf(service) {
-    for (let i = 0; i < activeQueue.length; i++) {
-        if (activeQueue[i].service === service && activeQueue[i].status === "waiting") {
-            return i;
-        }
-    }
-    return -1;
+// The first waiting entry for a service (arrival order), or null
+async function frontEntryOf(service) {
+    const entries = await QueueEntry.findAll({
+        where: { service: service, status: "waiting" },
+        order: [['position', 'ASC'], ['createdAt', 'ASC']]
+    });
+    return entries.length > 0 ? entries[0] : null;
 }
 
 // Decide which service to serve next
 // If requestedService is given, use it. Otherwise pick the highest-priority
 // service that has someone waiting.
-function nextServiceToServe(requestedService) {
+async function nextServiceToServe(requestedService) {
     if (requestedService) {
         return requestedService;
     }
+
+    const entries = await QueueEntry.findAll({ where: { status: "waiting" } });
 
     let bestService = null;
     let bestPriority = 0;
     const seen = [];
 
-    for (let i = 0; i < activeQueue.length; i++) {
-        const entry = activeQueue[i];
-        if (entry.status !== "waiting" || seen.indexOf(entry.service) !== -1) {
+    for (let i = 0; i < entries.length; i++) {
+        const entry = entries[i];
+        if (seen.indexOf(entry.service) !== -1) {
             continue;
         }
         seen.push(entry.service);
 
-        const priority = PRIORITY_ORDER[priorityOf(entry.service)] || 2;
+        const priority = PRIORITY_ORDER[await priorityOf(entry.service)] || 2;
         if (priority > bestPriority) {
             bestPriority = priority;
             bestService = entry.service;
@@ -62,80 +59,98 @@ function nextServiceToServe(requestedService) {
 }
 
 // Re-number the positions and wait times for everyone waiting in one service
-function recalculate(service) {
-    const duration = serviceDuration(service);
-    let position = 1;
+async function recalculate(service) {
+    const entries = await QueueEntry.findAll({
+        where: { service: service, status: "waiting" },
+        order: [['position', 'ASC'], ['createdAt', 'ASC']]
+    });
 
-    for (let i = 0; i < activeQueue.length; i++) {
-        if (activeQueue[i].service === service && activeQueue[i].status === "waiting") {
-            activeQueue[i].position = position;
-            activeQueue[i].estimatedWaitTime = (position - 1) * duration;
-            position++;
-        }
+    const duration = await serviceDuration(service);
+    for (let i = 0; i < entries.length; i++) {
+        entries[i].position = i + 1;
+        entries[i].estimatedWaitTime = i * duration;
+        await entries[i].save();
     }
 }
 
 // route: view the current queue
-router.get('/', function (req, res) {
-    return res.json({ success: true, queue: activeQueue });
+router.get('/', async function (req, res) {
+    try {
+        const queue = await QueueEntry.findAll();
+        return res.json({ success: true, queue: queue });
+    } catch (err) {
+        return res.status(500).json({ success: false, message: "Database error" });
+    }
 });
 
 // route: serve the next user
 // Optional body.service: serve that service's front; otherwise the highest-priority one
-router.post('/serve', function (req, res) {
-    const service = nextServiceToServe(req.body.service);
+router.post('/serve', async function (req, res) {
+    try {
+        const service = await nextServiceToServe(req.body.service);
+        if (service === null) {
+            return res.status(404).json({ success: false, message: "No one is waiting in the queue." });
+        }
 
-    if (service === null) {
-        return res.status(404).json({ success: false, message: "No one is waiting in the queue." });
+        const entry = await frontEntryOf(service);
+        if (entry === null) {
+            return res.status(404).json({ success: false, message: "No one is waiting in the queue." });
+        }
+
+        await entry.destroy();
+        await history.recordEntry(entry.userName, entry.service, "Served", entry.estimatedWaitTime);
+        await recalculate(service);
+
+        if (notifications && typeof notifications.checkQueue === 'function') {
+            const activeQueue = await QueueEntry.findAll();
+            notifications.checkQueue(activeQueue);
+        }
+
+        return res.json({
+            success: true,
+            message: entry.userName + " has been served.",
+            user: entry
+        });
+    } catch (err) {
+        return res.status(500).json({ success: false, message: "Database error" });
     }
-
-    const index = frontIndexOf(service);
-    if (index === -1) {
-        return res.status(404).json({ success: false, message: "No one is waiting in the queue." });
-    }
-
-    const served = activeQueue.splice(index, 1)[0];
-
-    // Record the served user in history and update the remaining queue
-    history.recordEntry(served.userName, served.service, "Served", served.estimatedWaitTime);
-    recalculate(service);
-    notifications.checkQueue(activeQueue);
-
-    return res.json({
-        success: true,
-        message: served.userName + " has been served.",
-        user: served
-    });
 });
 
 // route: mark the next user as a no-show (they are removed and counted as "Missed")
-router.post('/no-show', function (req, res) {
-    const service = nextServiceToServe(req.body.service);
+router.post('/no-show', async function (req, res) {
+    try {
+        const service = await nextServiceToServe(req.body.service);
+        if (service === null) {
+            return res.status(404).json({ success: false, message: "No one is waiting in the queue." });
+        }
 
-    if (service === null) {
-        return res.status(404).json({ success: false, message: "No one is waiting in the queue." });
+        const entry = await frontEntryOf(service);
+        if (entry === null) {
+            return res.status(404).json({ success: false, message: "No one is waiting in the queue." });
+        }
+
+        await entry.destroy();
+        await history.recordEntry(entry.userName, entry.service, "Missed", entry.estimatedWaitTime);
+        await recalculate(service);
+
+        if (notifications && typeof notifications.checkQueue === 'function') {
+            const activeQueue = await QueueEntry.findAll();
+            notifications.checkQueue(activeQueue);
+        }
+
+        return res.json({
+            success: true,
+            message: entry.userName + " was marked as a no-show.",
+            user: entry
+        });
+    } catch (err) {
+        return res.status(500).json({ success: false, message: "Database error" });
     }
-
-    const index = frontIndexOf(service);
-    if (index === -1) {
-        return res.status(404).json({ success: false, message: "No one is waiting in the queue." });
-    }
-
-    const removed = activeQueue.splice(index, 1)[0];
-    history.recordEntry(removed.userName, removed.service, "Missed", removed.estimatedWaitTime);
-    recalculate(service);
-    notifications.checkQueue(activeQueue);
-
-    return res.json({
-        success: true,
-        message: removed.userName + " was marked as a no-show.",
-        user: removed
-    });
 });
 
 // route: reorder a user up or down within their service's queue
 // Body: { queueId, direction } where direction is "up" or "down"
-router.post('/reorder', function (req, res) {
+router.post('/reorder', async function (req, res) {
     const queueId = req.body.queueId;
     const direction = req.body.direction;
 
@@ -146,77 +161,71 @@ router.post('/reorder', function (req, res) {
         return res.status(400).json({ success: false, message: "Direction must be 'up' or 'down'." });
     }
 
-    let index = -1;
-    for (let i = 0; i < activeQueue.length; i++) {
-        if (activeQueue[i].id === queueId) {
-            index = i;
-            break;
+    try {
+        const entry = await QueueEntry.findByPk(queueId);
+        if (entry === null) {
+            return res.status(404).json({ success: false, message: "Entry was not found." });
         }
-    }
-    if (index === -1) {
-        return res.status(404).json({ success: false, message: "Entry was not found." });
-    }
 
-    const entry = activeQueue[index];
-    const service = entry.service;
+        // All waiting entries for this service, in order
+        const siblings = await QueueEntry.findAll({
+            where: { service: entry.service, status: "waiting" },
+            order: [['position', 'ASC'], ['createdAt', 'ASC']]
+        });
 
-    // Find the waiting neighbour to swap with (same service)
-    let target = -1;
-    if (direction === "up") {
-        for (let i = index - 1; i >= 0; i--) {
-            if (activeQueue[i].service === service && activeQueue[i].status === "waiting") {
-                target = i;
+        let index = -1;
+        for (let i = 0; i < siblings.length; i++) {
+            if (siblings[i].id === queueId) {
+                index = i;
                 break;
             }
         }
-    } else {
-        for (let i = index + 1; i < activeQueue.length; i++) {
-            if (activeQueue[i].service === service && activeQueue[i].status === "waiting") {
-                target = i;
-                break;
-            }
+
+        const target = direction === "up" ? index - 1 : index + 1;
+        if (target < 0 || target >= siblings.length) {
+            return res.status(400).json({ success: false, message: "Cannot move further in that direction." });
         }
+
+        // Swap positions
+        const tempPos = siblings[index].position;
+        siblings[index].position = siblings[target].position;
+        siblings[target].position = tempPos;
+        await siblings[index].save();
+        await siblings[target].save();
+
+        return res.json({ success: true, message: "Queue reordered." });
+    } catch (err) {
+        return res.status(500).json({ success: false, message: "Database error" });
     }
-
-    if (target === -1) {
-        return res.status(400).json({ success: false, message: "Cannot move further in that direction." });
-    }
-
-    // Swap the two entries and fix the positions
-    const temp = activeQueue[index];
-    activeQueue[index] = activeQueue[target];
-    activeQueue[target] = temp;
-
-    recalculate(service);
-
-    return res.json({ success: true, message: "Queue reordered.", queue: activeQueue });
 });
 
 // route: remove a user from the queue by id (any position)
-router.delete('/:id', function (req, res) {
+router.delete('/:id', async function (req, res) {
     const queueId = req.params.id;
 
-    let index = -1;
-    for (let i = 0; i < activeQueue.length; i++) {
-        if (activeQueue[i].id === queueId) {
-            index = i;
-            break;
+    try {
+        const entry = await QueueEntry.findByPk(queueId);
+        if (entry === null) {
+            return res.status(404).json({ success: false, message: "Entry was not found." });
         }
+
+        const service = entry.service;
+        await entry.destroy();
+        await history.recordEntry(entry.userName, entry.service, "Left Queue", entry.estimatedWaitTime);
+        await recalculate(service);
+
+        if (notifications && typeof notifications.checkQueue === 'function') {
+            const activeQueue = await QueueEntry.findAll();
+            notifications.checkQueue(activeQueue);
+        }
+
+        return res.json({ success: true, message: entry.userName + " was removed from the queue.", user: entry });
+    } catch (err) {
+        return res.status(500).json({ success: false, message: "Database error" });
     }
-
-    if (index === -1) {
-        return res.status(404).json({ success: false, message: "Entry was not found." });
-    }
-
-    const removed = activeQueue.splice(index, 1)[0];
-    history.recordEntry(removed.userName, removed.service, "Left Queue", removed.estimatedWaitTime);
-    recalculate(removed.service);
-    notifications.checkQueue(activeQueue);
-
-    return res.json({ success: true, message: removed.userName + " was removed from the queue.", user: removed });
 });
 
-// *** CALENDAR FUNCTIONALITY --- BEGIN ***
+// *** CALENDAR FUNCTIONALITY --- BEGIN *** (in-memory appointments for the calendar)
 
 const appointments = [
     { id: "appt1", date: "2026-10-26", time: "09:00", title: "Academic Advising",   service: "Academic Advising" },
@@ -251,7 +260,7 @@ router.post('/appointments', function (req, res) {
         title: title,
         service: service
     };
-    
+
     appointments.push(entry);
     return res.json({ success: true, appointment: entry });
 });
@@ -264,6 +273,5 @@ module.exports = {
     nextServiceToServe: nextServiceToServe,
     recalculate: recalculate,
     PRIORITY_ORDER: PRIORITY_ORDER,
-    // *** Added calendar export here ***
     appointments: appointments
 };

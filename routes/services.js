@@ -1,8 +1,8 @@
 // Service Management Module
-// Lets an administrator create, update, and list services
-// Note: no database yet, services are kept in memory while the server is running
+// Lets an administrator create, update, and list services (persisted in SQLite)
 const express = require('express');
 const router = express.Router();
+const { Service } = require('../tables');
 
 // Longest service name and description we accept
 const MAX_NAME_LENGTH = 100;
@@ -14,49 +14,20 @@ const MAX_QUEUE_SIZE = 200;
 // The priority levels a service can have
 const PRIORITY_LEVELS = ["Low", "Medium", "High"];
 
-// In-memory storage: every service the administrator has made
-let services = [];
-
-// Id for the next service
-let nextId = 1;
-
-// Mock data: the services from the A2 Service Management screen
-function addMockServices() {
-    // *** Added date and time ***
-    const mock = [
-        { name: "Academic Advising", description: "Talk to an advisor about course selection.", date: "2026-10-26", time: "09:00", duration: 30, maxSize: 10, priority: "High", open: true },
-        { name: "Financial Aid Office", description: "Help with FAFSA, scholarships, and aid questions.", date: "2026-11-26", time: "12:00", duration: 15, maxSize: 8, priority: "Medium", open: true },
-        { name: "Tutoring Services", description: "One-on-one tutoring for selected courses.", date: "2026-11-05", time: "02:00", duration: 5, maxSize: 5, priority: "Low", open: true }
-    ];
-
-    for (let i = 0; i < mock.length; i++) {
-        services.push({
-            id: nextId,
-            name: mock[i].name,
-            description: mock[i].description,
-            // *** Added date and time ***
-            date: mock[i].date,
-            time: mock[i].time,
-            duration: mock[i].duration,
-            maxSize: mock[i].maxSize,
-            priority: mock[i].priority,
-            open: mock[i].open
-        });
-        nextId++;
+// Seed the three mock services if the table is empty (used on startup and in tests)
+async function seedServices() {
+    const count = await Service.count();
+    if (count === 0) {
+        await Service.bulkCreate([
+            { name: "Academic Advising", description: "Talk to an advisor about course selection.", date: "2026-10-26", time: "09:00", duration: 30, maxSize: 10, priority: "High", open: true },
+            { name: "Financial Aid Office", description: "Help with FAFSA, scholarships, and aid questions.", date: "2026-11-26", time: "12:00", duration: 15, maxSize: 8, priority: "Medium", open: true },
+            { name: "Tutoring Services", description: "One-on-one tutoring for selected courses.", date: "2026-11-05", time: "02:00", duration: 5, maxSize: 5, priority: "Low", open: true }
+        ]);
     }
-}
-
-// Start over with only the mock services (also used by the unit tests)
-// Note: the array is cleared in place so the exported reference stays valid
-function resetServices() {
-    services.length = 0;
-    nextId = 1;
-    addMockServices();
 }
 
 // Check a service's fields
 // Returns an error message, or "" if everything is fine
-// *** Added date and time ***
 function checkService(name, description, date, time, duration, maxSize, priority) {
     if (name === undefined || name === null || String(name).trim() === "") {
         return "Service name is required.";
@@ -85,7 +56,6 @@ function checkService(name, description, date, time, duration, maxSize, priority
     if (PRIORITY_LEVELS.indexOf(priority) === -1) {
         return "Priority must be Low, Medium, or High.";
     }
-    // *** Added date and time ***
     if (date === undefined || date === null || String(date).trim() === "") {
         return "Scheduled date is required.";
     }
@@ -103,161 +73,167 @@ function checkService(name, description, date, time, duration, maxSize, priority
     return "";
 }
 
-// Find a service by id, or return null
-function findService(id) {
-    for (let i = 0; i < services.length; i++) {
-        if (services[i].id === id) {
-            return services[i];
-        }
+// true if a service's queue is open (unknown services count as open)
+async function isServiceOpen(serviceName) {
+    const service = await Service.findOne({ where: { name: serviceName } });
+    if (service === null) {
+        return true;
     }
-    return null;
+    return service.open !== false;
 }
 
-// true if a service's queue is open (unknown services count as open)
-function isServiceOpen(serviceName) {
-    for (let i = 0; i < services.length; i++) {
-        if (services[i].name === serviceName) {
-            return services[i].open !== false;
-        }
+// A service's expected duration in minutes (default 15 for unknown services)
+async function serviceDuration(serviceName) {
+    const service = await Service.findOne({ where: { name: serviceName } });
+    if (service === null) {
+        return 15;
     }
-    return true;
+    return service.duration;
 }
 
 // route: list every service
-router.get('/', function (req, res) {
-    return res.json({ success: true, services: services });
+router.get('/', async function (req, res) {
+    try {
+        const services = await Service.findAll({ order: [['id', 'ASC']] });
+        return res.json({ success: true, services: services });
+    } catch (err) {
+        return res.status(500).json({ success: false, message: "Database error" });
+    }
 });
 
 // route: get a single service by id
-router.get('/:id', function (req, res) {
-    const id = Number(req.params.id);
-    const service = findService(id);
-
-    if (service === null) {
-        return res.status(404).json({ success: false, message: "Service not found." });
+router.get('/:id', async function (req, res) {
+    try {
+        const service = await Service.findByPk(Number(req.params.id));
+        if (service === null) {
+            return res.status(404).json({ success: false, message: "Service not found." });
+        }
+        return res.json({ success: true, service: service });
+    } catch (err) {
+        return res.status(500).json({ success: false, message: "Database error" });
     }
-
-    return res.json({ success: true, service: service });
 });
 
 // route: create a service
-router.post('/', function (req, res) {
+router.post('/', async function (req, res) {
     const name = req.body.name;
     const description = req.body.description;
-    // *** Added date and time ***
     const date = req.body.date;
     const time = req.body.time;
     const duration = req.body.duration;
     const maxSize = req.body.maxSize;
     const priority = req.body.priority;
 
-    // *** Added date and time ***
     const error = checkService(name, description, date, time, duration, maxSize, priority);
     if (error !== "") {
         return res.status(400).json({ success: false, message: error });
     }
 
-    const service = {
-        id: nextId,
-        name: String(name).trim(),
-        description: String(description).trim(),
-        // *** Added date and time ***
-        date: String(date).trim(),        
-        time: String(time).trim(),        
-        duration: Number(duration),
-        maxSize: Number(maxSize),
-        priority: priority,
-        open: true
-    };
-    nextId++;
-    services.push(service);
-
-    return res.status(201).json({ success: true, message: "Service created.", service: service });
+    try {
+        const service = await Service.create({
+            name: String(name).trim(),
+            description: String(description).trim(),
+            date: String(date).trim(),
+            time: String(time).trim(),
+            duration: Number(duration),
+            maxSize: Number(maxSize),
+            priority: priority,
+            open: true
+        });
+        return res.status(201).json({ success: true, message: "Service created.", service: service });
+    } catch (err) {
+        return res.status(500).json({ success: false, message: "Database error" });
+    }
 });
 
 // route: update a service
-router.put('/:id', function (req, res) {
+router.put('/:id', async function (req, res) {
     const id = Number(req.params.id);
-    const service = findService(id);
-
-    if (service === null) {
-        return res.status(404).json({ success: false, message: "Service not found." });
-    }
 
     const name = req.body.name;
     const description = req.body.description;
-    // *** Added date and time ***
     const date = req.body.date;
     const time = req.body.time;
     const duration = req.body.duration;
     const maxSize = req.body.maxSize;
     const priority = req.body.priority;
 
-    // *** Added date and time ***
     const error = checkService(name, description, date, time, duration, maxSize, priority);
     if (error !== "") {
         return res.status(400).json({ success: false, message: error });
     }
 
-    service.name = String(name).trim();
-    service.description = String(description).trim();
-    // *** Added date and time ***
-    service.date = String(date).trim();
-    service.time = String(time).trim(); 
-    service.duration = Number(duration);
-    service.maxSize = Number(maxSize);
-    service.priority = priority;
+    try {
+        const service = await Service.findByPk(id);
+        if (service === null) {
+            return res.status(404).json({ success: false, message: "Service not found." });
+        }
 
-    return res.json({ success: true, message: "Service updated.", service: service });
+        service.name = String(name).trim();
+        service.description = String(description).trim();
+        service.date = String(date).trim();
+        service.time = String(time).trim();
+        service.duration = Number(duration);
+        service.maxSize = Number(maxSize);
+        service.priority = priority;
+        await service.save();
+
+        return res.json({ success: true, message: "Service updated.", service: service });
+    } catch (err) {
+        return res.status(500).json({ success: false, message: "Database error" });
+    }
 });
 
 // route: delete a service
-router.delete('/:id', function (req, res) {
-    const id = Number(req.params.id);
-
-    for (let i = 0; i < services.length; i++) {
-        if (services[i].id === id) {
-            const removed = services.splice(i, 1)[0];
-            return res.json({ success: true, message: "Service deleted.", service: removed });
+router.delete('/:id', async function (req, res) {
+    try {
+        const service = await Service.findByPk(Number(req.params.id));
+        if (service === null) {
+            return res.status(404).json({ success: false, message: "Service not found." });
         }
+        await service.destroy();
+        return res.json({ success: true, message: "Service deleted.", service: service });
+    } catch (err) {
+        return res.status(500).json({ success: false, message: "Database error" });
     }
-
-    return res.status(404).json({ success: false, message: "Service not found." });
 });
 
 // route: open a service's queue (lets users join again)
-router.post('/:id/open', function (req, res) {
-    const id = Number(req.params.id);
-    const service = findService(id);
-
-    if (service === null) {
-        return res.status(404).json({ success: false, message: "Service not found." });
+router.post('/:id/open', async function (req, res) {
+    try {
+        const service = await Service.findByPk(Number(req.params.id));
+        if (service === null) {
+            return res.status(404).json({ success: false, message: "Service not found." });
+        }
+        service.open = true;
+        await service.save();
+        return res.json({ success: true, message: "Service queue opened.", service: service });
+    } catch (err) {
+        return res.status(500).json({ success: false, message: "Database error" });
     }
-
-    service.open = true;
-    return res.json({ success: true, message: "Service queue opened.", service: service });
 });
 
 // route: close a service's queue (stops new users from joining)
-router.post('/:id/close', function (req, res) {
-    const id = Number(req.params.id);
-    const service = findService(id);
-
-    if (service === null) {
-        return res.status(404).json({ success: false, message: "Service not found." });
+router.post('/:id/close', async function (req, res) {
+    try {
+        const service = await Service.findByPk(Number(req.params.id));
+        if (service === null) {
+            return res.status(404).json({ success: false, message: "Service not found." });
+        }
+        service.open = false;
+        await service.save();
+        return res.json({ success: true, message: "Service queue closed.", service: service });
+    } catch (err) {
+        return res.status(500).json({ success: false, message: "Database error" });
     }
-
-    service.open = false;
-    return res.json({ success: true, message: "Service queue closed.", service: service });
 });
-
-resetServices();
 
 module.exports = {
     router: router,
-    services: services,
+    Service: Service,
     checkService: checkService,
-    resetServices: resetServices,
     isServiceOpen: isServiceOpen,
+    serviceDuration: serviceDuration,
+    seedServices: seedServices,
     PRIORITY_LEVELS: PRIORITY_LEVELS
 };

@@ -1,17 +1,16 @@
-// Notification / History table: every notification sent to a user
-// One user has many notifications (the userId link is set up in tables/index.js)
+// Notification / History table — tracks system activity (notifications) and
+// queue-participation history (served / left / missed)
 
 const { DataTypes } = require('sequelize');
 const sequelize = require('../configuration/databaseConfig');
 
 const NotificationHistory = sequelize.define('NotificationHistory', {
-    // each notification gets the next number, so newer ones have bigger ids
     id: {
         type: DataTypes.INTEGER,
         autoIncrement: true,
         primaryKey: true
     },
-    // the account (email) the notification is for
+    // the account (email) the record is for
     userName: {
         type: DataTypes.STRING(100),
         allowNull: false,
@@ -20,12 +19,12 @@ const NotificationHistory = sequelize.define('NotificationHistory', {
             len: [1, 100]
         }
     },
-    // what the notification is about: 'joined' (joined a queue) or 'almost' (almost their turn)
+    // 'joined' (joined a queue), 'almost' (almost their turn), or 'history' (queue-participation record)
     type: {
         type: DataTypes.STRING(20),
         allowNull: false,
         validate: {
-            isIn: [['joined', 'almost']]
+            isIn: [['joined', 'almost', 'history']]
         }
     },
     // the text the user sees
@@ -42,7 +41,7 @@ const NotificationHistory = sequelize.define('NotificationHistory', {
         type: DataTypes.UUID,
         allowNull: true
     },
-    // 'sent' when it is made, 'viewed' after the user opens it on the dashboard
+    // 'sent' when made, 'viewed' after the user opens it
     status: {
         type: DataTypes.STRING(10),
         allowNull: false,
@@ -51,11 +50,28 @@ const NotificationHistory = sequelize.define('NotificationHistory', {
             isIn: [['sent', 'viewed']]
         }
     },
-    // when the notification was sent
+    // when the record was created
     timestamp: {
         type: DataTypes.DATE,
         allowNull: false,
         defaultValue: DataTypes.NOW
+    },
+    // --- queue-participation history fields (set when type is 'history') ---
+    service: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    outcome: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    wait: {
+        type: DataTypes.INTEGER,
+        allowNull: true
+    },
+    date: {
+        type: DataTypes.STRING,
+        allowNull: true
     }
 });
 
