@@ -22,7 +22,7 @@
                     <li><a href="admin_dashboard.html">Admin Dashboard</a></li>
 
                     <!-- Link to service management screen -->
-                    <li><a href="service_management.html">Service Management</a></li>
+                    <li><a href="service_management.html" class="active">Service Management</a></li>
 
                     <!-- Link to queue management screen -->
                     <li><a href="queue_management.html">Queue Management</a></li>
@@ -200,36 +200,36 @@
 
                 // Client-side validation
                 if (name === "") {
-                    return showError("Service Name is required.");
+                    return showError("Service Name is required.", "service-name");
                 }
                 if (name.length > 100) {
-                    return showError("Service Name must be 100 characters or fewer.");
+                    return showError("Service Name must be 100 characters or fewer.", "service-name");
                 }
                 if (name.includes("<") || name.includes(">")) {
-                    return showError("Service Name cannot contain < or >.");
+                    return showError("Service Name cannot contain < or >.", "service-name");
                 }
                 if (description === "") {
-                    return showError("Description is required.");
+                    return showError("Description is required.", "service-desc");
                 }
                 if (description.includes("<") || description.includes(">")) {
-                    return showError("Description cannot contain < or >.");
+                    return showError("Description cannot contain < or >.", "service-desc");
                 }
                 if (durationText === "" || isNaN(duration) || duration < 1 || duration > 480) {
-                    return showError("Expected Duration must be between 1 and 480 minutes.");
+                    return showError("Expected Duration must be between 1 and 480 minutes.", "service-duration");
                 }
                 if (maxText === "" || isNaN(maxSize) || maxSize < 1 || maxSize > 200 || Math.floor(maxSize) !== maxSize) {
-                    return showError("Max Queue Size must be a whole number between 1 and 200.");
+                    return showError("Max Queue Size must be a whole number between 1 and 200.", "service-max");
                 }
                 if (priority === "") {
-                    return showError("Please select a Priority Level.");
+                    return showError("Please select a Priority Level.", "service-priority");
                 }
                 
                 // *** For Calendar below ***
                 if (date === "") {
-                    return showError("Scheduled Date is required.");
+                    return showError("Scheduled Date is required.", "service-date");
                 }
                 if (time === "") {
-                    return showError("Scheduled Time is required.");
+                    return showError("Scheduled Time is required.", "service-time");
                 }
                 // *** ***
 
@@ -355,19 +355,31 @@
                 clearError();
             }
 
-            // Show a validation error
-            function showError(message) {
+            // Show a validation error, optionally marking the offending field
+            function showError(message, fieldId) {
                 const error = document.getElementById("form-error");
                 error.innerText = message;
                 error.style.display = "block";
+
+                if (fieldId) {
+                    const field = document.getElementById(fieldId);
+                    if (field) {
+                        field.classList.add("input-error");
+                    }
+                }
                 return false;
             }
 
-            // Hide the validation error
+            // Hide the validation error and clear any error borders
             function clearError() {
                 const error = document.getElementById("form-error");
                 error.innerText = "";
                 error.style.display = "none";
+
+                const fields = document.querySelectorAll(".input-error");
+                for (let i = 0; i < fields.length; i++) {
+                    fields[i].classList.remove("input-error");
+                }
             }
 
             loadServices();
