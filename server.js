@@ -7,7 +7,7 @@ const path = require('path');
 const { sequelize } = require('./tables');
 const { router: userQueueRouter } = require('./routes/userQueue');
 const { router: notificationRouter } = require('./routes/notifications');
-const { router: serviceRouter } = require('./routes/services');
+const { router: serviceRouter, seedServices } = require('./routes/services');
 const { router: historyRouter } = require('./routes/history');
 const { router: adminQueueRouter } = require('./routes/adminQueue');
 const { router: authRouter, resetUsers } = require('./routes/auth');
@@ -59,8 +59,9 @@ app.get('/api/health', (req, res) => {
     res.send('QueueSmart API Server is running...');
 });
 
-// Sync SQLite Database and start listening if run directly
-sequelize.sync().then(() => {
+// Sync SQLite Database, seed the mock services, and start listening if run directly
+sequelize.sync().then(async () => {
+    await seedServices();
     console.log('SQLite Database Connected & Synced.');
     if (require.main === module) {
         app.listen(PORT, () => {

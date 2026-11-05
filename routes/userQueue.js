@@ -16,7 +16,7 @@ const service_Durations = {
 // check if API is working, will also return curr queue items
 router.get('/', async (req, res) => {
     try {
-        const activeQueue = await QueueEntry.findAll();
+        const activeQueue = await QueueEntry.findAll({ order: [['position', 'ASC'], ['createdAt', 'ASC']] });
         res.json({ message: "Queue API is working", queue: activeQueue });
     } catch (err) {
         res.status(500).json({ success: false, message: "Database error" });
@@ -38,7 +38,7 @@ router.post('/join', async (req, res) => {
     }
 
     // stop new joins when the service queue is closed
-    if (typeof isServiceOpen === 'function' && !isServiceOpen(service)) {
+    if (typeof isServiceOpen === 'function' && !(await isServiceOpen(service))) {
         return res.status(400).json({
             success: false,
             message: "This service queue is currently closed."
@@ -149,7 +149,7 @@ router.post('/leave', async (req, res) => {
 // will retrive all active queue entries
 router.get('/status', async (req, res) => {
     try {
-        const activeQueue = await QueueEntry.findAll();
+        const activeQueue = await QueueEntry.findAll({ order: [['position', 'ASC'], ['createdAt', 'ASC']] });
         return res.status(200).json({ 
             success: true, 
             queue: activeQueue 
