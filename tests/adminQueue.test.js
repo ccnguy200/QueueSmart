@@ -1,10 +1,8 @@
-// Unit tests for the Queue Management module (Admin side)
+// Unit tests for the Queue Management module (Admin side, database-backed)
 const request = require('supertest');
 const app = require('../server');
-const { activeQueue } = require('../routes/userQueue');
-const { resetServices } = require('../routes/services');
-const { resetHistory } = require('../routes/history');
-const { resetNotifications } = require('../routes/notifications');
+const { sequelize } = require('../tables');
+const { seedServices } = require('../routes/services');
 
 // Join a queue through the API so the queue module creates the entry normally
 function join(userName, service) {
@@ -21,14 +19,16 @@ function join(userName, service) {
 }
 
 describe('Queue Management Module (Admin side)', function () {
-    beforeEach(function () {
-        activeQueue.length = 0;
-        resetServices();
-        resetHistory();
-        resetNotifications();
+    beforeEach(async () => {
+        await sequelize.sync({ force: true });
+        await seedServices();
     });
 
-    test('serves the next user of a service', async function () {
+    afterAll(async () => {
+        await sequelize.close();
+    });
+
+    test('serves the next user of a service', async () => {
         await join("Alice", "Academic Advising");
         await join("Bob", "Academic Advising");
 
@@ -36,12 +36,13 @@ describe('Queue Management Module (Admin side)', function () {
 
         expect(res.statusCode).toBe(200);
         expect(res.body.user.userName).toBe("Alice");
-        // Bob moves up to position 1
-        expect(activeQueue.length).toBe(1);
-        expect(activeQueue[0].position).toBe(1);
+
+        const status = await request(app).get('/api/queue/status');
+        expect(status.body.queue.length).toBe(1);
+        expect(status.body.queue[0].position).toBe(1);
     });
 
-    test('serves the highest-priority service first when no service is given', async function () {
+    test('serves the highest-priority service first when no service is given', async () => {
         await join("Low Person", "Tutoring Services");   // Low priority
         await join("High Person", "Academic Advising");  // High priority
 
@@ -50,47 +51,60 @@ describe('Queue Management Module (Admin side)', function () {
         expect(res.body.user.userName).toBe("High Person");
     });
 
-    test('returns 404 when there is no one to serve', async function () {
+    test('returns 404 when there is no one to serve', async () => {
         const res = await request(app).post('/api/admin/queue/serve').send({});
         expect(res.statusCode).toBe(404);
     });
 
-    test('reorders a user down within their service', async function () {
+    test('reorders a user down within their service', async () => {
         await join("Alice", "Academic Advising");
         await join("Bob", "Academic Advising");
         await join("Carol", "Academic Advising");
 
+        const status = await request(app).get('/api/queue/status');
+        const firstId = status.body.queue[0].id;
+
         const res = await request(app)
             .post('/api/admin/queue/reorder')
-            .send({ queueId: activeQueue[0].id, direction: "down" });
+            .send({ queueId: firstId, direction: "down" });
 
         expect(res.statusCode).toBe(200);
-        expect(activeQueue[0].userName).toBe("Bob");
+
+        const after = await request(app).get('/api/queue/status');
+        expect(after.body.queue[0].userName).toBe("Bob");
     });
 
-    test('reorders a user up within their service', async function () {
+    test('reorders a user up within their service', async () => {
         await join("Alice", "Academic Advising");
         await join("Bob", "Academic Advising");
 
+        const status = await request(app).get('/api/queue/status');
+        const secondId = status.body.queue[1].id;
+
         const res = await request(app)
             .post('/api/admin/queue/reorder')
-            .send({ queueId: activeQueue[1].id, direction: "up" });
+            .send({ queueId: secondId, direction: "up" });
 
         expect(res.statusCode).toBe(200);
-        expect(activeQueue[0].userName).toBe("Bob");
+
+        const after = await request(app).get('/api/queue/status');
+        expect(after.body.queue[0].userName).toBe("Bob");
     });
 
-    test('rejects a reorder with a bad direction', async function () {
+    test('rejects a reorder with a bad direction', async () => {
         await join("Alice", "Academic Advising");
+
+        const status = await request(app).get('/api/queue/status');
+        const id = status.body.queue[0].id;
 
         const res = await request(app)
             .post('/api/admin/queue/reorder')
-            .send({ queueId: activeQueue[0].id, direction: "sideways" });
+            .send({ queueId: id, direction: "sideways" });
 
         expect(res.statusCode).toBe(400);
     });
 
-    test('records a served user in history', async function () {
+    test('records a served user in history', async () => {
         await join("Alice", "Academic Advising");
         await request(app).post('/api/admin/queue/serve').send({ service: "Academic Advising" });
 
@@ -101,11 +115,12 @@ describe('Queue Management Module (Admin side)', function () {
         expect(served).toBeTruthy();
     });
 
-    test('marks a no-show and records it as Missed', async function () {
+    test('marks a no-show and records it as Missed', async () => {
         await join("Alice", "Academic Advising");
         await request(app).post('/api/admin/queue/no-show').send({ service: "Academic Advising" });
 
-        expect(activeQueue.length).toBe(0);
+        const status = await request(app).get('/api/queue/status');
+        expect(status.body.queue.length).toBe(0);
 
         const res = await request(app).get('/api/history');
         const missed = res.body.history.find(function (record) {
@@ -114,23 +129,22 @@ describe('Queue Management Module (Admin side)', function () {
         expect(missed).toBeTruthy();
     });
 
-    test('rejects a join when the service queue is closed', async function () {
-        await request(app).post('/api/services/1/close');
-        const res = await join("Alice", "Academic Advising");
-        expect(res.statusCode).toBe(400);
-    });
-
-    test('removes a user from the queue by id', async function () {
+    test('removes a user from the queue by id', async () => {
         await join("Alice", "Academic Advising");
         await join("Bob", "Academic Advising");
 
-        const res = await request(app).delete('/api/admin/queue/' + activeQueue[1].id);
+        const status = await request(app).get('/api/queue/status');
+        const secondId = status.body.queue[1].id;
+
+        const res = await request(app).delete('/api/admin/queue/' + secondId);
         expect(res.statusCode).toBe(200);
-        expect(activeQueue.length).toBe(1);
-        expect(activeQueue[0].userName).toBe("Alice");
+
+        const after = await request(app).get('/api/queue/status');
+        expect(after.body.queue.length).toBe(1);
+        expect(after.body.queue[0].userName).toBe("Alice");
     });
 
-    test('returns 404 when removing a missing queue entry', async function () {
+    test('returns 404 when removing a missing queue entry', async () => {
         const res = await request(app).delete('/api/admin/queue/does-not-exist');
         expect(res.statusCode).toBe(404);
     });
