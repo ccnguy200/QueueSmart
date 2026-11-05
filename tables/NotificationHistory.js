@@ -13,17 +13,28 @@ const NotificationHistory = sequelize.define('NotificationHistory', {
     // the account (email) the record is for
     userName: {
         type: DataTypes.STRING(100),
-        allowNull: false
+        allowNull: false,
+        validate: {
+            notEmpty: true,
+            len: [1, 100]
+        }
     },
-    // what the notification is about: 'joined' or 'almost' (null for history records)
+    // 'joined' (joined a queue), 'almost' (almost their turn), or 'history' (queue-participation record)
     type: {
         type: DataTypes.STRING(20),
-        allowNull: true
+        allowNull: false,
+        validate: {
+            isIn: [['joined', 'almost', 'history']]
+        }
     },
-    // the text the user sees (null for history records)
+    // the text the user sees
     message: {
         type: DataTypes.STRING(255),
-        allowNull: true
+        allowNull: false,
+        validate: {
+            notEmpty: true,
+            len: [1, 255]
+        }
     },
     // the queue entry it is about (so "almost your turn" is only sent once per entry)
     queueEntryId: {
@@ -34,7 +45,10 @@ const NotificationHistory = sequelize.define('NotificationHistory', {
     status: {
         type: DataTypes.STRING(10),
         allowNull: false,
-        defaultValue: 'sent'
+        defaultValue: 'sent',
+        validate: {
+            isIn: [['sent', 'viewed']]
+        }
     },
     // when the record was created
     timestamp: {
@@ -42,7 +56,7 @@ const NotificationHistory = sequelize.define('NotificationHistory', {
         allowNull: false,
         defaultValue: DataTypes.NOW
     },
-    // --- queue-participation history fields (served / left / missed) ---
+    // --- queue-participation history fields (set when type is 'history') ---
     service: {
         type: DataTypes.STRING,
         allowNull: true

@@ -59,16 +59,17 @@ app.get('/api/health', (req, res) => {
     res.send('QueueSmart API Server is running...');
 });
 
-// Sync SQLite Database, seed the mock services, and start listening if run directly
-sequelize.sync().then(async () => {
-    await seedServices();
-    console.log('SQLite Database Connected & Synced.');
-    if (require.main === module) {
+// Sync SQLite Database, seed the mock services, and start listening if run directly.
+// (When required by the tests, the tests control syncing in their own beforeAll/beforeEach.)
+if (require.main === module) {
+    sequelize.sync().then(async () => {
+        await seedServices();
+        console.log('SQLite Database Connected & Synced.');
         app.listen(PORT, () => {
             console.log(`QueueSmart Backend running on http://localhost:${PORT}`);
         });
-    }
-});
+    });
+}
 
 module.exports = app;
 module.exports.resetUsers = resetUsers;

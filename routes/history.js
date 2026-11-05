@@ -43,6 +43,8 @@ async function recordEntry(userName, service, outcome, wait) {
 
     const record = await NotificationHistory.create({
         userName: userName,
+        type: "history",
+        message: userName + " was " + outcome + " from the " + service + " queue.",
         service: service,
         outcome: outcome,
         wait: waitMinutes,
@@ -59,7 +61,7 @@ router.get('/', async function (req, res) {
     const userName = req.query.userName;
     const outcome = req.query.outcome;
 
-    const where = {};
+    const where = { type: "history" };
     if (userName) {
         where.userName = userName;
     }
