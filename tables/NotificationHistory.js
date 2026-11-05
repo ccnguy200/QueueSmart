@@ -1,61 +1,63 @@
-// Notification / History table: every notification sent to a user
-// One user has many notifications (the userId link is set up in tables/index.js)
+// Notification / History table — tracks system activity (notifications) and
+// queue-participation history (served / left / missed)
 
 const { DataTypes } = require('sequelize');
 const sequelize = require('../configuration/databaseConfig');
 
 const NotificationHistory = sequelize.define('NotificationHistory', {
-    // each notification gets the next number, so newer ones have bigger ids
     id: {
         type: DataTypes.INTEGER,
         autoIncrement: true,
         primaryKey: true
     },
-    // the account (email) the notification is for
+    // the account (email) the record is for
     userName: {
         type: DataTypes.STRING(100),
-        allowNull: false,
-        validate: {
-            notEmpty: true,
-            len: [1, 100]
-        }
+        allowNull: false
     },
-    // what the notification is about: 'joined' (joined a queue) or 'almost' (almost their turn)
+    // what the notification is about: 'joined' or 'almost' (null for history records)
     type: {
         type: DataTypes.STRING(20),
-        allowNull: false,
-        validate: {
-            isIn: [['joined', 'almost']]
-        }
+        allowNull: true
     },
-    // the text the user sees
+    // the text the user sees (null for history records)
     message: {
         type: DataTypes.STRING(255),
-        allowNull: false,
-        validate: {
-            notEmpty: true,
-            len: [1, 255]
-        }
+        allowNull: true
     },
     // the queue entry it is about (so "almost your turn" is only sent once per entry)
     queueEntryId: {
         type: DataTypes.UUID,
         allowNull: true
     },
-    // 'sent' when it is made, 'viewed' after the user opens it on the dashboard
+    // 'sent' when made, 'viewed' after the user opens it
     status: {
         type: DataTypes.STRING(10),
         allowNull: false,
-        defaultValue: 'sent',
-        validate: {
-            isIn: [['sent', 'viewed']]
-        }
+        defaultValue: 'sent'
     },
-    // when the notification was sent
+    // when the record was created
     timestamp: {
         type: DataTypes.DATE,
         allowNull: false,
         defaultValue: DataTypes.NOW
+    },
+    // --- queue-participation history fields (served / left / missed) ---
+    service: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    outcome: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    wait: {
+        type: DataTypes.INTEGER,
+        allowNull: true
+    },
+    date: {
+        type: DataTypes.STRING,
+        allowNull: true
     }
 });
 

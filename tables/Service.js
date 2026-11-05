@@ -1,29 +1,50 @@
-// temporary code for running unit test - will remove before merge
+// Service table — services offered by the organization (Service Management module)
 
 const { DataTypes } = require('sequelize');
 const sequelize = require('../configuration/databaseConfig');
 
 const Service = sequelize.define('Service', {
-    id: { 
-        type: DataTypes.UUID, 
-        defaultValue: DataTypes.UUIDV4, 
-        primaryKey: true 
+    id: {
+        type: DataTypes.INTEGER,
+        autoIncrement: true,
+        primaryKey: true
     },
-    serviceName: { 
-        type: DataTypes.STRING, 
-        allowNull: false 
+    name: {
+        type: DataTypes.STRING,
+        allowNull: false
     },
-    description: { 
-        type: DataTypes.TEXT, 
-        allowNull: false 
+    description: {
+        type: DataTypes.TEXT,
+        allowNull: false
     },
-    expectedDuration: { 
-        type: DataTypes.INTEGER, 
-        allowNull: false // calculated duration in minutes
+    // expected service duration in minutes
+    duration: {
+        type: DataTypes.INTEGER,
+        allowNull: false
     },
-    priorityLevel: { 
-        type: DataTypes.STRING, 
-        defaultValue: 'medium' // 'low', 'medium', or 'high'
+    // largest queue size a service can have (people)
+    maxSize: {
+        type: DataTypes.INTEGER,
+        defaultValue: 10
+    },
+    // 'Low', 'Medium', or 'High'
+    priority: {
+        type: DataTypes.STRING,
+        defaultValue: 'Medium'
+    },
+    // whether the queue is currently accepting joins
+    open: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true
+    },
+    // scheduled date and time (calendar feature)
+    date: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    time: {
+        type: DataTypes.STRING,
+        allowNull: true
     }
 });
 
