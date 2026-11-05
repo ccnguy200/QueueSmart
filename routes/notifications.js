@@ -1,55 +1,18 @@
 // Notification Module
-// Makes a notification when a user joins a queue and when they are close to being served
-// Note: no database yet, notifications are kept in memory while the server is running
+// Saves a notification in the database when a user joins a queue and when they are close to being served
 const express = require('express');
 const router = express.Router();
+const { NotificationHistory, UserCredentials } = require('../tables');
 
 // Send "almost your turn" at this position or closer (same as the Queue Status page)
 const NOTIFY_AT_POSITION = 2;
 
-// Longest user name we accept
+// Longest user name we accept (same as the NotificationHistory table)
 const MAX_USER_NAME_LENGTH = 100;
 
-// In-memory storage: every notification made so far
-let notifications = [];
-
-// Mock data: the notifications every user starts with
-let mockNotifications = [];
-
-// Queue entries that already got the "almost your turn" notification
-let almostNotified = [];
-
-// Id for the next notification
-let nextId = 1;
-
-// Mock data: notifications every user already has (same as the A2 dashboard)
-function addMockNotifications() {
-    const mock = [
-        ["calendar", "Your Financial Aid Office appointment on October 25 at 1:00 PM is confirmed.", "9:00 AM"],
-        ["location", "You are within range of Student Service Center 1.", "10:01 AM"],
-        ["status", "Your status changed to: Waiting.", "10:02 AM"],
-        ["position", "Your position in the Academic Advising queue is now #3.", "10:05 AM"]
-    ];
-
-    for (let i = 0; i < mock.length; i++) {
-        mockNotifications.push({
-            id: nextId,
-            type: mock[i][0],
-            message: mock[i][1],
-            time: mock[i][2]
-        });
-        nextId++;
-    }
-}
-
-// Start over with only the mock notifications (also used by the unit tests)
-function resetNotifications() {
-    notifications = [];
-    mockNotifications = [];
-    almostNotified = [];
-    nextId = 1;
-    addMockNotifications();
-}
+// Notifications are saved one after another, in the order they happen
+// "saving" is the newest save, the GET route waits for it so it never misses one
+let saving = Promise.resolve();
 
 // Turn a date into a time like "9:05 AM"
 function formatTime(date) {
@@ -89,34 +52,40 @@ function checkUserName(userName) {
     return "";
 }
 
-// Save a new notification and log it
-// Returns the notification, or null if the user name or message is not valid
-function addNotification(userName, type, message) {
+// Save a new notification in the database and log it
+// Returns the saved notification, or null if it is not valid
+async function addNotification(userName, type, message, queueEntryId) {
     if (checkUserName(userName) !== "") {
         return null;
     }
-    if (typeof message !== "string" || message.trim() === "") {
+
+    try {
+        // link it to the user's account if they have one
+        let userId = null;
+        const user = await UserCredentials.findOne({ where: { email: userName } });
+        if (user !== null) {
+            userId = user.id;
+        }
+
+        const notification = await NotificationHistory.create({
+            userId: userId,
+            userName: userName,
+            type: type,
+            message: message,
+            queueEntryId: queueEntryId
+        });
+
+        console.log("Notification for " + userName + ": " + message);
+        return notification;
+    } catch (err) {
+        // the table's validation did not accept it (for example, the message is too long)
         return null;
     }
-
-    const notification = {
-        id: nextId,
-        userName: userName,
-        type: type,
-        message: message,
-        time: formatTime(new Date())
-    };
-    nextId++;
-
-    notifications.push(notification);
-    console.log("Notification for " + userName + ": " + message);
-
-    return notification;
 }
 
 // Trigger 1: the user joined a queue
 // entry is the queue entry from the Queue Management module
-function notifyJoined(entry) {
+async function saveJoined(entry) {
     if (!entry || typeof entry.service !== "string" || entry.service === "") {
         return null;
     }
@@ -129,25 +98,14 @@ function notifyJoined(entry) {
         message = message + " Estimated wait: " + entry.estimatedWaitTime + " minutes.";
     }
 
-    return addNotification(entry.userName, "joined", message);
-}
-
-// true if this queue entry already got the "almost your turn" notification
-function wasAlmostNotified(entry) {
-    for (let i = 0; i < almostNotified.length; i++) {
-        if (almostNotified[i] === entry) {
-            return true;
-        }
-    }
-    return false;
+    return addNotification(entry.userName, "joined", message, entry.id);
 }
 
 // Trigger 2: users who are close to being served
 // For every waiting entry, count the waiting people ahead of it in the same service
 // (they joined earlier), and notify it once when it reaches NOTIFY_AT_POSITION or closer
-// Call this after the queue changes (someone joins, leaves, or is served)
 // Returns how many notifications were made
-function checkQueue(queue) {
+async function saveAlmost(queue) {
     if (!Array.isArray(queue)) {
         return 0;
     }
@@ -157,7 +115,7 @@ function checkQueue(queue) {
     for (let i = 0; i < queue.length; i++) {
         const entry = queue[i];
 
-        if (entry.status === "waiting" && !wasAlmostNotified(entry)) {
+        if (entry.status === "waiting") {
             let position = 1;
             for (let j = 0; j < i; j++) {
                 if (queue[j].service === entry.service && queue[j].status === "waiting") {
@@ -166,14 +124,20 @@ function checkQueue(queue) {
             }
 
             if (position <= NOTIFY_AT_POSITION) {
-                let message = "It's almost your turn! You are #" + position + " in the " + entry.service + " queue.";
-                if (position === 1) {
-                    message = "It's almost your turn! You are next in the " + entry.service + " queue.";
-                }
+                // only once per queue entry
+                const alreadySent = await NotificationHistory.count({
+                    where: { queueEntryId: entry.id, type: "almost" }
+                });
 
-                if (addNotification(entry.userName, "almost", message) !== null) {
-                    almostNotified.push(entry);
-                    made++;
+                if (alreadySent === 0) {
+                    let message = "It's almost your turn! You are #" + position + " in the " + entry.service + " queue.";
+                    if (position === 1) {
+                        message = "It's almost your turn! You are next in the " + entry.service + " queue.";
+                    }
+
+                    if (await addNotification(entry.userName, "almost", message, entry.id) !== null) {
+                        made++;
+                    }
                 }
             }
         }
@@ -182,9 +146,31 @@ function checkQueue(queue) {
     return made;
 }
 
+// Called by the Queue Management module after a user joins
+// (if a save fails, it is skipped so the next saves still happen)
+function notifyJoined(entry) {
+    saving = saving.then(function () {
+        return saveJoined(entry);
+    }).catch(function () {
+        return null;
+    });
+    return saving;
+}
+
+// Called by the Queue Management module after the queue changes (someone joins, leaves, or is served)
+function checkQueue(queue) {
+    saving = saving.then(function () {
+        return saveAlmost(queue);
+    }).catch(function () {
+        return 0;
+    });
+    return saving;
+}
+
 // route: get a user's notifications, newest first
 // GET /api/notifications?userName=user@email.com
-function getNotifications(req, res) {
+// After this the user has seen them, so 'sent' becomes 'viewed'
+async function getNotifications(req, res) {
     const userName = req.query.userName;
 
     const error = checkUserName(userName);
@@ -195,28 +181,45 @@ function getNotifications(req, res) {
         });
     }
 
-    // The notifications made for this user
-    const list = [];
-    for (let i = notifications.length - 1; i >= 0; i--) {
-        if (notifications[i].userName === userName) {
-            list.push(notifications[i]);
+    try {
+        // wait for notifications that are still being saved
+        await saving;
+
+        const rows = await NotificationHistory.findAll({
+            where: { userName: userName },
+            order: [['id', 'DESC']]
+        });
+
+        const list = [];
+        for (let i = 0; i < rows.length; i++) {
+            list.push({
+                id: rows[i].id,
+                type: rows[i].type,
+                message: rows[i].message,
+                status: rows[i].status,
+                timestamp: rows[i].timestamp,
+                time: formatTime(rows[i].timestamp)
+            });
         }
-    }
 
-    // Then the mock notifications every user starts with (they are older)
-    for (let i = mockNotifications.length - 1; i >= 0; i--) {
-        list.push(mockNotifications[i]);
-    }
+        await NotificationHistory.update(
+            { status: "viewed" },
+            { where: { userName: userName, status: "sent" } }
+        );
 
-    return res.json({
-        success: true,
-        notifications: list
-    });
+        return res.json({
+            success: true,
+            notifications: list
+        });
+    } catch (err) {
+        return res.status(500).json({
+            success: false,
+            message: "Database error"
+        });
+    }
 }
 
 router.get('/', getNotifications);
-
-resetNotifications();
 
 module.exports = {
     router: router,
@@ -224,6 +227,5 @@ module.exports = {
     checkQueue: checkQueue,
     addNotification: addNotification,
     checkUserName: checkUserName,
-    formatTime: formatTime,
-    resetNotifications: resetNotifications
+    formatTime: formatTime
 };
