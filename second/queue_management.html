@@ -25,7 +25,7 @@
                     <li><a href="service_management.html">Service Management</a></li>
 
                     <!-- Link to queue management screen -->
-                    <li><a href="queue_management.html">Queue Management</a></li>
+                    <li><a href="queue_management.html" class="active">Queue Management</a></li>
 
                     <!-- Link to the lobby "Now Serving" screen (opens in a new tab for the lobby TV) -->
                     <li><a href="now_serving.html" target="_blank">Now Serving</a></li>
@@ -180,8 +180,8 @@
                         "<td>" + status + "</td>" +
                         "<td>" + person.estimatedWaitTime + " min</td>" +
                         '<td class="actions">' +
-                            '<button class="btn-secondary" onclick="moveUp(\'' + person.id + '\')"' + upDisabled + ">&uarr;</button>" +
-                            '<button class="btn-secondary" onclick="moveDown(\'' + person.id + '\')"' + downDisabled + ">&darr;</button>" +
+                            '<button class="btn-secondary" aria-label="Move up" onclick="moveUp(\'' + person.id + '\')"' + upDisabled + ">&uarr;</button>" +
+                            '<button class="btn-secondary" aria-label="Move down" onclick="moveDown(\'' + person.id + '\')"' + downDisabled + ">&darr;</button>" +
                             '<button class="btn-danger" onclick="removeUser(\'' + person.id + '\')">Remove</button>' +
                             frontButtons +
                         "</td>";
