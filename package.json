@@ -5,7 +5,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "jest --coverage"
+    "test": "jest --coverage",
+    "reset-db": "node -e \"require('fs').rmSync('queueSmart.sqlite',{force:true}); console.log('Deleted queueSmart.sqlite — run npm start again.')\""
   },
   "repository": {
     "type": "git",

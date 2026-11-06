@@ -62,13 +62,25 @@ app.get('/api/health', (req, res) => {
 // Sync SQLite Database, seed the mock services, and start listening if run directly.
 // (When required by the tests, the tests control syncing in their own beforeAll/beforeEach.)
 if (require.main === module) {
-    sequelize.sync().then(async () => {
-        await seedServices();
-        console.log('SQLite Database Connected & Synced.');
-        app.listen(PORT, () => {
-            console.log(`QueueSmart Backend running on http://localhost:${PORT}`);
+    sequelize.sync()
+        .then(async () => {
+            await seedServices();
+            console.log('SQLite Database Connected & Synced.');
+            app.listen(PORT, () => {
+                console.log(`QueueSmart Backend running on http://localhost:${PORT}`);
+            });
+        })
+        .catch(function (err) {
+            const message = String((err && err.message) || err);
+            if (message.indexOf('SQLITE_ERROR') !== -1) {
+                console.error('\nCould not start: your local queueSmart.sqlite has an old schema.');
+                console.error('Delete the local database and start again:');
+                console.error('    npm run reset-db\n');
+            } else {
+                console.error(err);
+            }
+            process.exit(1);
         });
-    });
 }
 
 module.exports = app;
