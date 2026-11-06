@@ -53,6 +53,8 @@
             <!-- When submitted, handleJoinQueue function called -->
             <form id="join-form" onsubmit="return handleJoinQueue(event)">
 
+                <div class="two-col">
+                <div>
                 <!-- Feature 1: Select a service -->
                 <div class="form-group">
                     <label for="service">Select Service: <span style="color:red;">*</span></label>
@@ -92,6 +94,8 @@
                     <input type="time" id="queue-time" name="queue-time" required>
                 </div>
 
+                </div>
+                <div>
                 <!-- Payment Feature: User will input CC information to pay for for service -->
                 <h3>Payment Details</h3>
                 <!-- Note: card inputs have no name so card info is not shown in the URL -->
@@ -117,6 +121,9 @@
                 <div class="form-group">
                     <label for="cvv">CVV: <span style="color:red;">*</span></label>
                     <input type="password" id="cvv" placeholder="ex. 123" maxlength="3" required>
+                </div>
+
+                </div>
                 </div>
 
                 <!-- Form error message -->

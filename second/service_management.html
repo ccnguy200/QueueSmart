@@ -50,16 +50,16 @@
             <!-- onsubmit calls saveService() -->
             <form id="service-form" onsubmit="saveService(event)" novalidate>
 
+                <div class="form-grid">
                 <!-- Service Name: required, max 100 characters -->
-                <div class="form-group">
+                <div class="form-group full">
                     <label for="service-name">Service Name: <span class="required">*</span></label>
                     <input type="text" id="service-name" name="service-name" maxlength="100" required>
                     <p class="hint">Required, maximum 100 characters.</p>
                 </div>
 
                 <!-- Description: required -->
-                <div class="form-group">
-                    <label for="service-desc">Description: <span class="required">*</span></label>
+                <div class="form-group full">
                     <textarea id="service-desc" name="service-desc" required></textarea>
                 </div>
 
@@ -99,6 +99,7 @@
                         <option value="High">High</option>
                     </select>
                 </div>
+                </div>
 
                 <!-- Form error message -->
                 <p id="form-error" style="color:#c0392b; display:none;"></p>
@@ -117,13 +118,9 @@
             <table>
                 <thead>
                     <tr>
-                        <th>Service Name</th>
-                        <th>Description</th>
-                        <!-- *** Added date and time below *** -->
-                        <th>Date</th>
-                        <th>Time</th>
+                        <th>Service</th>
+                        <th>Scheduled</th>
                         <th>Duration</th>
-                        <th>Max Size</th>
                         <th>Priority</th>
                         <th>Actions</th>
                     </tr>
@@ -158,13 +155,9 @@
                     const row = document.createElement("tr");
 
                     row.innerHTML =
-                        "<td>" + service.name + "</td>" +
-                        "<td>" + service.description + "</td>" +
-                        // *** Added date and time below ***
-                        "<td>" + (service.date || "—") + "</td>" +
-                        "<td>" + (service.time || "—") + "</td>" +
+                        "<td><strong>" + service.name + "</strong><br><span class='hint'>" + service.description + "</span></td>" +
+                        "<td>" + (service.date || "—") + " &middot; " + (service.time || "—") + "</td>" +
                         "<td>" + service.duration + " min</td>" +
-                        "<td>" + service.maxSize + " people</td>" +
                         "<td>" + priorityBadge(service.priority) + "</td>" +
                         '<td class="actions">' +
                             '<button class="btn-secondary" onclick="editService(' + service.id + ')">Edit</button>' +

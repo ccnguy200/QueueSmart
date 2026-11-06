@@ -44,6 +44,7 @@
         <!-- Note: Mock Data used -->
         <h1>User Dashboard</h1>
 
+        <div class="grid cols-2">
         <!-- Feature 1: Overview of current queue status -->
         <div class="card">
             <h3>Current Queue Status</h3>
@@ -99,7 +100,7 @@
 
         <!-- Feature 2: Notifications summary (newest first), bell.js fills it with the same list as the bell -->
         <!-- "View all notifications" in the bell opens it (the list below is mock data for when nobody is logged in) -->
-        <div class="card" id="notifications">
+        <div class="card span-2" id="notifications">
             <h3>Notifications Summary</h3>
             <ul class="updates">
                 <!-- Queue update: change in user's position -->
@@ -118,7 +119,7 @@
 
         <!-- Feature 3: Active services available -->
         <!-- Note: mock rows until loadMyCards() gets the real services from the backend -->
-        <div class="card">
+        <div class="card span-2">
             <h3>Active services available</h3>
             <table>
                 <thead>
@@ -149,6 +150,7 @@
             <!-- Closed queues are not listed above -->
             <p class="hint" id="closed-list">Closed right now: Tutoring Services</p>
         </div>
+        </div><!-- /.grid -->
 
         <!-- script will fetch live queue status -->
         <script>
