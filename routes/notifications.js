@@ -10,6 +10,9 @@ const NOTIFY_AT_POSITION = 2;
 // Longest user name we accept (same as the NotificationHistory table)
 const MAX_USER_NAME_LENGTH = 100;
 
+// The two kinds of notifications (the table also keeps "history" records for the History page)
+const NOTIFICATION_TYPES = ["joined", "almost"];
+
 // Notifications are saved one after another, in the order they happen
 // "saving" is the newest save, the GET route waits for it so it never misses one
 let saving = Promise.resolve();
@@ -103,7 +106,8 @@ async function saveJoined(entry) {
 
 // Trigger 2: users who are close to being served
 // For every waiting entry, count the waiting people ahead of it in the same service
-// (they joined earlier), and notify it once when it reaches NOTIFY_AT_POSITION or closer
+// (a smaller position number, or the same number but earlier in the list),
+// and notify it once when it reaches NOTIFY_AT_POSITION or closer
 // Returns how many notifications were made
 async function saveAlmost(queue) {
     if (!Array.isArray(queue)) {
@@ -117,9 +121,13 @@ async function saveAlmost(queue) {
 
         if (entry.status === "waiting") {
             let position = 1;
-            for (let j = 0; j < i; j++) {
-                if (queue[j].service === entry.service && queue[j].status === "waiting") {
-                    position++;
+            for (let j = 0; j < queue.length; j++) {
+                if (j !== i && queue[j].service === entry.service && queue[j].status === "waiting") {
+                    if (queue[j].position < entry.position) {
+                        position++;
+                    } else if (queue[j].position === entry.position && j < i) {
+                        position++;
+                    }
                 }
             }
 
@@ -169,7 +177,7 @@ function checkQueue(queue) {
 
 // route: get a user's notifications, newest first
 // GET /api/notifications?userName=user@email.com
-// After this the user has seen them, so 'sent' becomes 'viewed'
+// Reading does not change the status: 'sent' becomes 'viewed' when the user opens them in the bell list
 async function getNotifications(req, res) {
     const userName = req.query.userName;
 
@@ -186,7 +194,7 @@ async function getNotifications(req, res) {
         await saving;
 
         const rows = await NotificationHistory.findAll({
-            where: { userName: userName },
+            where: { userName: userName, type: NOTIFICATION_TYPES },
             order: [['id', 'DESC']]
         });
 
@@ -202,11 +210,6 @@ async function getNotifications(req, res) {
             });
         }
 
-        await NotificationHistory.update(
-            { status: "viewed" },
-            { where: { userName: userName, status: "sent" } }
-        );
-
         return res.json({
             success: true,
             notifications: list
@@ -219,7 +222,88 @@ async function getNotifications(req, res) {
     }
 }
 
+// The userName sent in the body of a POST request (undefined if there is no body)
+function bodyUserName(req) {
+    if (!req.body) {
+        return undefined;
+    }
+    return req.body.userName;
+}
+
+// route: mark one notification as viewed (the user clicked it in the bell list)
+// POST /api/notifications/5/viewed   body: { userName: "user@email.com" }
+async function markOneViewed(req, res) {
+    const userName = bodyUserName(req);
+
+    const error = checkUserName(userName);
+    if (error !== "") {
+        return res.status(400).json({
+            success: false,
+            message: error
+        });
+    }
+
+    try {
+        // only the user's own notifications (not history records)
+        const notification = await NotificationHistory.findOne({
+            where: { id: req.params.id, userName: userName, type: NOTIFICATION_TYPES }
+        });
+
+        if (notification === null) {
+            return res.status(404).json({
+                success: false,
+                message: "Notification was not found."
+            });
+        }
+
+        notification.status = "viewed";
+        await notification.save();
+
+        return res.json({
+            success: true
+        });
+    } catch (err) {
+        return res.status(500).json({
+            success: false,
+            message: "Database error"
+        });
+    }
+}
+
+// route: mark all of a user's notifications as viewed ("Mark all read" in the bell list)
+// POST /api/notifications/viewed   body: { userName: "user@email.com" }
+async function markAllViewed(req, res) {
+    const userName = bodyUserName(req);
+
+    const error = checkUserName(userName);
+    if (error !== "") {
+        return res.status(400).json({
+            success: false,
+            message: error
+        });
+    }
+
+    try {
+        const result = await NotificationHistory.update(
+            { status: "viewed" },
+            { where: { userName: userName, type: NOTIFICATION_TYPES, status: "sent" } }
+        );
+
+        return res.json({
+            success: true,
+            updated: result[0]
+        });
+    } catch (err) {
+        return res.status(500).json({
+            success: false,
+            message: "Database error"
+        });
+    }
+}
+
 router.get('/', getNotifications);
+router.post('/viewed', markAllViewed);
+router.post('/:id/viewed', markOneViewed);
 
 module.exports = {
     router: router,

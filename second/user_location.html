@@ -9,6 +9,8 @@
 
         <!-- Places and distance function for the location feature -->
         <script src="../location.js"></script>
+        <!-- Notification bell in the header (shows new notifications) -->
+        <script src="../bell.js"></script>
     </head>
     <!-- Body content -->
     <!-- When the page is shown (also after pressing Back), showPlace() shows the selected building again -->
@@ -109,10 +111,10 @@
             <button type="button" class="btn" id="join-btn" onclick="goToJoinQueue()" disabled>Join Queue</button>
         </div>
 
-        <!-- Note: Mock Data used, only the queue the user is in comes from the backend -->
+        <!-- Note: Mock Data used, the open/closed status and the queue the user is in come from the backend -->
         <script>
             // Open or closed for each service
-            // Note: mock data, same as the admin screens
+            // Note: mock data until loadOpenQueues() gets the real status from the backend
             const queueOpen = { "Academic Advising": true, "Financial Aid Office": true, "Tutoring Services": false };
 
             // Note: mock data, the user is already in the Academic Advising queue
@@ -286,8 +288,27 @@
                 }
             }
 
+            // Ask the backend which queues are open (same as the Admin Dashboard)
+            async function loadOpenQueues() {
+                try {
+                    const response = await fetch('/api/services');
+                    const data = await response.json();
+
+                    if (!response.ok || !data.success) {
+                        return;
+                    }
+
+                    for (let i = 0; i < data.services.length; i++) {
+                        queueOpen[data.services[i].name] = data.services[i].open;
+                    }
+                } catch (err) {
+                    console.log("Could not load which queues are open.");
+                }
+            }
+
             // Runs when the page is shown (also after the Back button)
             window.addEventListener('pageshow', loadCurrentQueue);
+            window.addEventListener('pageshow', loadOpenQueues);
         </script>
     </body>
 </html>

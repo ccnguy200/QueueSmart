@@ -66,8 +66,20 @@
 
             // Turn "Maria Lopez" into "Maria L." to keep names private
             function shortName(fullName) {
-                const parts = fullName.split(" ");
-                return parts[0] + " " + parts[parts.length - 1].charAt(0) + ".";
+                let name = fullName;
+
+                // An email only uses the part before the @ ("maria.lopez@uh.edu" -> "maria lopez")
+                const at = name.indexOf("@");
+                if (at !== -1) {
+                    name = name.substring(0, at).split(".").join(" ");
+                }
+
+                const parts = name.split(" ");
+                const first = parts[0].charAt(0).toUpperCase() + parts[0].substring(1);
+                if (parts.length === 1) {
+                    return first;
+                }
+                return first + " " + parts[parts.length - 1].charAt(0).toUpperCase() + ".";
             }
 
             // Build one card for each service
@@ -81,8 +93,8 @@
                     const card = document.createElement("div");
                     card.className = "card";
 
-                    // Closed queue
-                    if (service.open === false) {
+                    // Closed queue with nobody left to serve
+                    if (service.open === false && people.length === 0) {
                         card.innerHTML =
                             "<h3>" + service.name + "</h3>" +
                             '<p><span class="badge badge-closed">Closed</span></p>';
@@ -103,8 +115,15 @@
                             upNext = "<li>No one else is waiting.</li>";
                         }
 
+                        // A closed queue still serves the people who are already waiting
+                        let closedNote = "";
+                        if (service.open === false) {
+                            closedNote = '<p><span class="badge badge-closed">Closed</span> No new people can join.</p>';
+                        }
+
                         card.innerHTML =
                             "<h3>" + service.name + "</h3>" +
+                            closedNote +
                             '<div class="current">' +
                                 '<div class="stat">' +
                                     '<div class="label">Now Serving</div>' +
@@ -155,6 +174,9 @@
             }
 
             loadDisplay();
+
+            // Load again every 5 seconds so the screen shows who is being called
+            setInterval(loadDisplay, 5000);
         </script>
     </body>
 </html>

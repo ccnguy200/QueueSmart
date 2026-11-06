@@ -12,6 +12,8 @@
 
         <!-- Pop-up messages that match the site style -->
         <script src="../popup.js"></script>
+        <!-- Notification bell in the header (shows new notifications) -->
+        <script src="../bell.js"></script>
     </head>
     <!-- Body content -->
     <body>
@@ -47,6 +49,12 @@
         <!-- Queue Status Screen -->
         <!-- Note: Mock Data used -->
         <h1>Queue Status</h1>
+
+        <!-- Shown right after the user joins (join_queue.html sends ?joined=1) -->
+        <div class="card" id="joined-card" style="display:none; border: 2px solid green;">
+            <h3>You're in the queue!</h3>
+            <p id="joined-message"></p>
+        </div>
 
         <!-- Notification: shown when it is almost the user's turn -->
         <div class="card" id="alert-card" style="display:none; border: 2px solid darkorange;">
@@ -205,6 +213,9 @@
 
             // The user's entry in the backend queue (null = not found, the page shows the mock data)
             let myEntry = null;
+
+            // Timer that checks the position again every 15 seconds
+            let refreshTimer = null;
 
             // Minutes per person the backend uses for the wait time (same as routes/userQueue.js)
             const backendMinutes = { "Academic Advising": 30, "Financial Aid Office": 24, "Tutoring Services": 5 };
@@ -525,15 +536,34 @@
             }
 
             // Wait time in minutes
-            // With a backend entry: people ahead x minutes per person (same rule as the backend)
+            // With a backend entry: the backend's own estimate (same as the dashboard)
+            // If the position was changed on this page: people ahead x minutes per person
             function waitMinutes() {
                 if (myEntry !== null) {
+                    if (position === myEntry.position) {
+                        return myEntry.estimatedWaitTime;
+                    }
                     return (position - 1) * backendMinutes[serviceKey];
                 }
                 return position * minutesPerPerson;
             }
 
+            // The logged in user is not in any queue: say so instead of showing the mock data
+            function showNotInQueue() {
+                const cards = document.querySelectorAll(".card");
+                for (let i = 0; i < cards.length; i++) {
+                    cards[i].style.display = "none";
+                }
+
+                const mainCard = document.getElementById("service-name").parentElement;
+                mainCard.innerHTML = "<h3>You are not in a queue right now.</h3>" +
+                    "<p>Join a queue to see your position and wait time here.</p>" +
+                    '<a href="join_queue.html" class="btn">Join a Queue</a>';
+                mainCard.style.display = "block";
+            }
+
             // Get the user's position in this queue from the backend
+            // Runs when the page opens, then every 15 seconds so the position stays up to date
             async function loadMyQueue() {
                 // Nobody is logged in: keep the mock data
                 const userName = sessionStorage.getItem("userName");
@@ -550,32 +580,50 @@
                     }
 
                     // Find this user's entry for this service (or the other service they are in)
+                    let found = null;
                     let otherService = "";
                     for (let i = 0; i < data.queue.length; i++) {
                         if (data.queue[i].userName === userName) {
                             if (data.queue[i].service === serviceKey) {
-                                myEntry = data.queue[i];
+                                found = data.queue[i];
                             } else {
                                 otherService = data.queue[i].service;
                             }
                         }
                     }
 
-                    if (myEntry === null) {
+                    if (found === null) {
                         // The user is in a different queue: show the page for that queue instead
                         if (otherService === "Academic Advising" || otherService === "Financial Aid Office" || otherService === "Tutoring Services") {
                             window.location.replace("queue_status.html?service=" + encodeURIComponent(otherService));
+                        } else {
+                            // The user is not in any queue (or was just served): stop checking
+                            myEntry = null;
+                            clearInterval(refreshTimer);
+                            showNotInQueue();
                         }
-                        // The user is not in any queue: keep the mock data
                         return;
                     }
 
+                    // First time: start the status updates, later: add a line when the position changes
+                    if (myEntry === null) {
+                        updates = [["Your position is now #" + found.position + ".", currentTime()]];
+                    } else if (found.position !== myEntry.position) {
+                        addUpdate("Your position is now #" + found.position + ".");
+                    }
+
+                    myEntry = found;
                     position = myEntry.position;
-                    updates = [["Your position is now #" + position + ".", currentTime()]];
 
                     // Close to the front: Almost Ready
                     if (position <= notifyAtPosition) {
                         statusIndex = 1;
+                    }
+
+                    // Just joined (join_queue.html sends ?joined=1): say so at the top
+                    if (params.get("joined") === "1") {
+                        document.getElementById("joined-message").innerText = "You are #" + position + " in the " + serviceNames[serviceKey] + " queue. We will let you know when it is almost your turn.";
+                        document.getElementById("joined-card").style.display = "block";
                     }
 
                     renderStatus();
@@ -584,15 +632,19 @@
                 }
             }
 
-            // Leave Queue: remove the user's entry from the backend queue, then go to the dashboard
-            async function leaveQueue(event) {
+            // Leave Queue: ask first, because leaving gives up the user's spot
+            function leaveQueue(event) {
                 // No backend entry (mock data): the link just opens the dashboard
                 if (myEntry === null) {
                     return;
                 }
 
                 event.preventDefault();
+                showConfirm("Leave the " + serviceNames[serviceKey] + " queue? You will lose your spot (#" + position + ").", leaveNow);
+            }
 
+            // The user clicked Yes: remove the entry from the backend queue, then go to the dashboard
+            async function leaveNow() {
                 try {
                     const response = await fetch('/api/queue/leave', {
                         method: 'POST',
@@ -625,6 +677,9 @@
 
             renderStatus();
             loadMyQueue();
+
+            // Check the position again every 15 seconds (like a delivery tracker)
+            refreshTimer = setInterval(loadMyQueue, 15000);
         </script>
     </body>
 </html>

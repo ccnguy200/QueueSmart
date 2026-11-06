@@ -164,6 +164,22 @@ describe('checkQueue (trigger 2: user is close to being served)', function () {
         expect(await getMessages("c@email.com")).toEqual([]);
     });
 
+    test('counts by position number, not by the order of the list', async function () {
+        const queue = [
+            makeEntry("a@email.com", "Academic Advising", "waiting"),
+            makeEntry("b@email.com", "Academic Advising", "waiting"),
+            makeEntry("c@email.com", "Academic Advising", "waiting")
+        ];
+        queue[0].position = 3;
+        queue[1].position = 1;
+        queue[2].position = 2;
+
+        expect(await notifications.checkQueue(queue)).toBe(2);
+        expect(await getMessages("b@email.com")).toEqual(["It's almost your turn! You are next in the Academic Advising queue."]);
+        expect(await getMessages("c@email.com")).toEqual(["It's almost your turn! You are #2 in the Academic Advising queue."]);
+        expect(await getMessages("a@email.com")).toEqual([]);
+    });
+
     test('notifies each entry only once', async function () {
         const queue = [makeEntry("a@email.com", "Academic Advising", "waiting")];
 
@@ -215,7 +231,7 @@ describe('GET /api/notifications', function () {
         expect(response.body).toEqual({ success: true, notifications: [] });
     });
 
-    test('newest first, only the user\'s own, and "sent" becomes "viewed" after reading', async function () {
+    test('newest first, only the user\'s own, and reading does not change "sent"', async function () {
         await notifications.addNotification("a@email.com", "joined", "First");
         await notifications.addNotification("a@email.com", "almost", "Second");
         await notifications.addNotification("b@email.com", "joined", "Not mine");
@@ -227,8 +243,16 @@ describe('GET /api/notifications', function () {
         expect(firstRead.body.notifications[0].message).toBe("Second");
         expect(firstRead.body.notifications[0].status).toBe("sent");
         expect(firstRead.body.notifications[0].time).toMatch(/^\d{1,2}:\d{2} (AM|PM)$/);
-        expect(secondRead.body.notifications[0].status).toBe("viewed");
+        expect(secondRead.body.notifications[0].status).toBe("sent");
         expect(await NotificationHistory.count({ where: { userName: "b@email.com", status: "sent" } })).toBe(1);
+    });
+
+    test('history records in the same table are not shown as notifications', async function () {
+        await notifications.addNotification("a@email.com", "joined", "Hello");
+        await NotificationHistory.create({ userName: "a@email.com", type: "history", message: "a@email.com was Served from the Tutoring Services queue." });
+
+        expect(await getMessages("a@email.com")).toEqual(["Hello"]);
+        expect(await NotificationHistory.count({ where: { type: "history", status: "sent" } })).toBe(1);
     });
 
     test('500 when the database is not working', async function () {
@@ -238,6 +262,65 @@ describe('GET /api/notifications', function () {
 
         expect(response.status).toBe(500);
         expect(response.body.success).toBe(false);
+    });
+});
+
+describe('POST /api/notifications/viewed and /api/notifications/:id/viewed', function () {
+    test('400 when userName is missing', async function () {
+        const all = await request(app).post('/api/notifications/viewed');
+        const one = await request(app).post('/api/notifications/1/viewed').send({});
+
+        expect(all.status).toBe(400);
+        expect(all.body).toEqual({ success: false, message: "userName is required." });
+        expect(one.status).toBe(400);
+    });
+
+    test('one notification: only that one becomes "viewed"', async function () {
+        const first = await notifications.addNotification("a@email.com", "joined", "First");
+        await notifications.addNotification("a@email.com", "almost", "Second");
+
+        const response = await request(app).post('/api/notifications/' + first.id + '/viewed').send({ userName: "a@email.com" });
+
+        expect(response.status).toBe(200);
+        expect((await NotificationHistory.findByPk(first.id)).status).toBe("viewed");
+        expect(await NotificationHistory.count({ where: { userName: "a@email.com", status: "sent" } })).toBe(1);
+    });
+
+    test('404 for someone else\'s notification, a history record, or a wrong id', async function () {
+        const mine = await notifications.addNotification("a@email.com", "joined", "Mine");
+        const record = await NotificationHistory.create({ userName: "b@email.com", type: "history", message: "b@email.com was Served from the Tutoring Services queue." });
+
+        const other = await request(app).post('/api/notifications/' + mine.id + '/viewed').send({ userName: "b@email.com" });
+        const history = await request(app).post('/api/notifications/' + record.id + '/viewed').send({ userName: "b@email.com" });
+        const wrong = await request(app).post('/api/notifications/999/viewed').send({ userName: "a@email.com" });
+
+        expect(other.status).toBe(404);
+        expect(history.status).toBe(404);
+        expect(wrong.status).toBe(404);
+        expect((await NotificationHistory.findByPk(mine.id)).status).toBe("sent");
+    });
+
+    test('all: every "sent" notification of the user becomes "viewed"', async function () {
+        await notifications.addNotification("a@email.com", "joined", "First");
+        await notifications.addNotification("a@email.com", "almost", "Second");
+        await notifications.addNotification("b@email.com", "joined", "Not mine");
+
+        const response = await request(app).post('/api/notifications/viewed').send({ userName: "a@email.com" });
+
+        expect(response.body).toEqual({ success: true, updated: 2 });
+        expect(await NotificationHistory.count({ where: { userName: "a@email.com", status: "viewed" } })).toBe(2);
+        expect(await NotificationHistory.count({ where: { userName: "b@email.com", status: "sent" } })).toBe(1);
+    });
+
+    test('500 when the database is not working', async function () {
+        jest.spyOn(NotificationHistory, 'update').mockRejectedValue(new Error("database is down"));
+        jest.spyOn(NotificationHistory, 'findOne').mockRejectedValue(new Error("database is down"));
+
+        const all = await request(app).post('/api/notifications/viewed').send({ userName: "a@email.com" });
+        const one = await request(app).post('/api/notifications/1/viewed').send({ userName: "a@email.com" });
+
+        expect(all.status).toBe(500);
+        expect(one.status).toBe(500);
     });
 });
 
@@ -269,6 +352,22 @@ describe('joining and leaving a queue send notifications', function () {
         ]);
     });
 
+    test('after the admin moves someone up, the right person gets "almost your turn"', async function () {
+        await request(app).post('/api/queue/join').send(joinRequest("a@email.com", "Financial Aid Office"));
+        await request(app).post('/api/queue/join').send(joinRequest("b@email.com", "Financial Aid Office"));
+        await request(app).post('/api/queue/join').send(joinRequest("c@email.com", "Financial Aid Office"));
+        const last = await request(app).post('/api/queue/join').send(joinRequest("d@email.com", "Financial Aid Office"));
+
+        await request(app).post('/api/admin/queue/reorder').send({ queueId: last.body.data.id, direction: "up" });
+        await request(app).post('/api/admin/queue/reorder').send({ queueId: last.body.data.id, direction: "up" });
+        await request(app).post('/api/admin/queue/serve').send({ service: "Financial Aid Office" });
+
+        expect(await getMessages("d@email.com")).toContain("It's almost your turn! You are next in the Financial Aid Office queue.");
+        const others = await getMessages("c@email.com");
+        expect(others.length).toBe(1);
+        expect(others[0]).toContain("You are #3.");
+    });
+
     test('the notifications are saved in the NotificationHistory table', async function () {
         const join = await request(app).post('/api/queue/join').send(joinRequest("a@email.com", "Tutoring Services"));
         await getMessages("a@email.com");
@@ -277,6 +376,6 @@ describe('joining and leaving a queue send notifications', function () {
 
         expect(rows.length).toBe(2);
         expect(rows[0].queueEntryId).toBe(join.body.data.id);
-        expect(rows[0].status).toBe("viewed");
+        expect(rows[0].status).toBe("sent");
     });
 });

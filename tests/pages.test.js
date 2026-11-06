@@ -18,13 +18,13 @@ describe('front-end pages', function () {
     });
 
     test('images open', async function () {
-        const response = await request(app).get('/images/logo.jpg');
+        const response = await request(app).get('/images/logo.svg');
 
         expect(response.status).toBe(200);
     });
 
     test('front-end files in the main folder open', async function () {
-        const files = ['/index.html', '/styles.css', '/authentication.js', '/popup.js', '/location.js'];
+        const files = ['/index.html', '/styles.css', '/authentication.js', '/popup.js', '/location.js', '/bell.js'];
 
         for (let i = 0; i < files.length; i++) {
             const response = await request(app).get(files[i]);
@@ -34,6 +34,15 @@ describe('front-end pages', function () {
 
     test('back-end files are not shared', async function () {
         const files = ['/server.js', '/package.json', '/routes/notifications.js', '/tests/pages.test.js'];
+
+        for (let i = 0; i < files.length; i++) {
+            const response = await request(app).get(files[i]);
+            expect(response.status).toBe(404);
+        }
+    });
+
+    test('the database file and database code are not shared', async function () {
+        const files = ['/queueSmart.sqlite', '/configuration/databaseConfig.js', '/tables/index.js', '/tables/NotificationHistory.js'];
 
         for (let i = 0; i < files.length; i++) {
             const response = await request(app).get(files[i]);

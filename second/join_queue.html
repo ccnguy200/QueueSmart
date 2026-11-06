@@ -9,6 +9,8 @@
 
         <!-- Pop-up messages that match the site style -->
         <script src="../popup.js"></script>
+        <!-- Notification bell in the header (shows new notifications) -->
+        <script src="../bell.js"></script>
     </head>
     <!-- When the page is shown (also after pressing Back), updateWaitTime and showLocationStatus functions called -->
     <body onpageshow="updateWaitTime(); showLocationStatus()">
@@ -108,7 +110,7 @@
                 <!-- User inputs exp date next -->
                 <div class="form-group">
                     <label for="exp-date">Expiration Date: <span style="color:red;">*</span></label>
-                    <input type="text" id="exp-date" placeholder="ex. MM/YY" maxlength="5" required>
+                    <input type="text" id="exp-date" placeholder="ex. MM/YY" maxlength="5" required oninput="formatExpDate()">
                 </div>
 
                 <!-- User inputs cvv num next -->
@@ -161,7 +163,7 @@
             let switchConfirmed = false;
 
             // Queue size, size limit, and open/closed for each service
-            // Note: mock data, same as the admin screens
+            // Note: mock data until loadQueueInfo() gets the real numbers from the backend
             const queueSize = { "Academic Advising": 4, "Financial Aid Office": 2, "Tutoring Services": 0 };
             const maxQueueSize = { "Academic Advising": 10, "Financial Aid Office": 8, "Tutoring Services": 5 };
             const queueOpen = { "Academic Advising": true, "Financial Aid Office": true, "Tutoring Services": false };
@@ -367,9 +369,8 @@
                             });
                         }
 
-                        showPopup("Successfully joined the queue!", function () {
-                            window.location.href = "queue_status.html?service=" + encodeURIComponent(payload.service);
-                        });
+                        // go straight to Queue Status, it says "You're in the queue!" at the top
+                        window.location.href = "queue_status.html?service=" + encodeURIComponent(payload.service) + "&joined=1";
                     } else {
                         showError(data.message || "Failed to join queue.");
                     }
@@ -378,6 +379,26 @@
                 }
 
                 return false;
+            }
+
+            // formatExpDate(): adds the "/" while the user types the expiration date (1228 -> 12/28)
+            function formatExpDate() {
+                const box = document.getElementById("exp-date");
+
+                // keep only the numbers, at most 4 (MMYY)
+                let digits = "";
+                for (let i = 0; i < box.value.length; i++) {
+                    if (box.value[i] >= "0" && box.value[i] <= "9") {
+                        digits = digits + box.value[i];
+                    }
+                }
+                digits = digits.substring(0, 4);
+
+                if (digits.length > 2) {
+                    box.value = digits.substring(0, 2) + "/" + digits.substring(2);
+                } else {
+                    box.value = digits;
+                }
             }
 
             // isAllDigits(): returns true if the text only has the numbers 0-9
@@ -437,6 +458,39 @@
                 }
             }
 
+            // loadQueueInfo(): asks the backend which queues are open, how many people fit, and how many are waiting
+            async function loadQueueInfo() {
+                try {
+                    const servicesResponse = await fetch('/api/services');
+                    const servicesData = await servicesResponse.json();
+                    const queueResponse = await fetch('/api/queue/status');
+                    const queueData = await queueResponse.json();
+
+                    if (!servicesResponse.ok || !servicesData.success || !queueResponse.ok || !queueData.success) {
+                        return;
+                    }
+
+                    for (let i = 0; i < servicesData.services.length; i++) {
+                        const service = servicesData.services[i];
+                        queueOpen[service.name] = service.open;
+                        maxQueueSize[service.name] = service.maxSize;
+                        queueSize[service.name] = 0;
+                    }
+
+                    // Count the people waiting in each queue
+                    for (let i = 0; i < queueData.queue.length; i++) {
+                        const entry = queueData.queue[i];
+                        if (entry.status === "waiting" && queueSize[entry.service] !== undefined) {
+                            queueSize[entry.service] = queueSize[entry.service] + 1;
+                        }
+                    }
+
+                    updateWaitTime();
+                } catch (err) {
+                    console.log("Could not load the queue information.");
+                }
+            }
+
             // leaveQueue(): takes the user out of the backend queue, then goes to the dashboard
             async function leaveQueue(event) {
                 // No backend entry (mock data): the link just opens the dashboard
@@ -471,6 +525,7 @@
 
             // will run when the page is shown (also after the Back button)
             window.addEventListener('pageshow', loadCurrentQueue);
+            window.addEventListener('pageshow', loadQueueInfo);
         </script>
 
     </body>

@@ -6,6 +6,8 @@
 
         <!-- Pop-up messages that match the site style -->
         <script src="../popup.js"></script>
+        <!-- Notification bell in the header (shows new notifications) -->
+        <script src="../bell.js"></script>
     </head>
     <body>
         <div>
@@ -112,6 +114,8 @@
                     // only keep the entries of the user who is logged in
                     const userName = sessionStorage.getItem("userName");
                     if (data.success && userName !== null) {
+                        // a logged in user only sees their own appointments, not the mock ones
+                        events = [];
                         const myEntries = [];
                         for (let i = 0; i < data.queue.length; i++) {
                             if (data.queue[i].userName === userName) {
