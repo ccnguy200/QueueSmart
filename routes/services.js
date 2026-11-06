@@ -2,7 +2,7 @@
 // Lets an administrator create, update, and list services (persisted in SQLite)
 const express = require('express');
 const router = express.Router();
-const { Service } = require('../tables');
+const { Service, Queue } = require('../tables');
 
 // Longest service name and description we accept
 const MAX_NAME_LENGTH = 100;
@@ -18,11 +18,15 @@ const PRIORITY_LEVELS = ["Low", "Medium", "High"];
 async function seedServices() {
     const count = await Service.count();
     if (count === 0) {
-        await Service.bulkCreate([
+        const services = await Service.bulkCreate([
             { name: "Academic Advising", description: "Talk to an advisor about course selection.", date: "2026-10-26", time: "09:00", duration: 30, maxSize: 10, priority: "High", open: true },
             { name: "Financial Aid Office", description: "Help with FAFSA, scholarships, and aid questions.", date: "2026-11-26", time: "12:00", duration: 15, maxSize: 8, priority: "Medium", open: true },
             { name: "Tutoring Services", description: "One-on-one tutoring for selected courses.", date: "2026-11-05", time: "02:00", duration: 5, maxSize: 5, priority: "Low", open: true }
         ]);
+        // Give every seeded service an open queue row
+        for (let i = 0; i < services.length; i++) {
+            await Queue.create({ serviceId: services[i].id, status: "open" });
+        }
     }
 }
 
@@ -140,6 +144,8 @@ router.post('/', async function (req, res) {
             priority: priority,
             open: true
         });
+        // Every service gets its own queue row (starts open)
+        await Queue.create({ serviceId: service.id, status: "open" });
         return res.status(201).json({ success: true, message: "Service created.", service: service });
     } catch (err) {
         return res.status(500).json({ success: false, message: "Database error" });
@@ -207,6 +213,7 @@ router.post('/:id/open', async function (req, res) {
         }
         service.open = true;
         await service.save();
+        await Queue.update({ status: "open" }, { where: { serviceId: service.id } });
         return res.json({ success: true, message: "Service queue opened.", service: service });
     } catch (err) {
         return res.status(500).json({ success: false, message: "Database error" });
@@ -222,6 +229,7 @@ router.post('/:id/close', async function (req, res) {
         }
         service.open = false;
         await service.save();
+        await Queue.update({ status: "closed" }, { where: { serviceId: service.id } });
         return res.json({ success: true, message: "Service queue closed.", service: service });
     } catch (err) {
         return res.status(500).json({ success: false, message: "Database error" });

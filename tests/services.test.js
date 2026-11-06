@@ -1,7 +1,7 @@
 // Unit tests for the Service Management module (database-backed)
 const request = require('supertest');
 const app = require('../server');
-const { sequelize } = require('../tables');
+const { sequelize, Queue } = require('../tables');
 const { seedServices } = require('../routes/services');
 
 describe('Service Management Module', function () {
@@ -157,5 +157,31 @@ describe('Service Management Module', function () {
         const res = await request(app).post('/api/services/' + id + '/open');
         expect(res.statusCode).toBe(200);
         expect(res.body.service.open).toBe(true);
+    });
+
+    // Creating a service also creates its Queue row
+    test('creating a service creates its Queue', async () => {
+        const res = await request(app).post('/api/services').send({
+            name: "Queue Check", description: "Queue row check.", duration: 10, maxSize: 5,
+            priority: "Low", date: "2026-11-01", time: "10:00"
+        });
+        expect(res.statusCode).toBe(201);
+        const q = await Queue.findOne({ where: { serviceId: res.body.service.id } });
+        expect(q).not.toBeNull();
+        expect(q.status).toBe("open");
+    });
+
+    // Closing a service marks its Queue closed; opening marks it open again
+    test('closing/opening a service updates its Queue status', async () => {
+        const list = await request(app).get('/api/services');
+        const id = list.body.services[0].id;
+
+        await request(app).post('/api/services/' + id + '/close');
+        let q = await Queue.findOne({ where: { serviceId: id } });
+        expect(q.status).toBe("closed");
+
+        await request(app).post('/api/services/' + id + '/open');
+        q = await Queue.findOne({ where: { serviceId: id } });
+        expect(q.status).toBe("open");
     });
 });
