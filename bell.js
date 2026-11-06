@@ -1,5 +1,6 @@
 // Notification bell in the header of the user pages
 // A red number shows how many notifications are new, click the bell to see them
+// When it is almost the user's turn, a banner also shows under the header
 
 // Check for new notifications every 15 seconds
 const BELL_CHECK_EVERY = 15000;
@@ -39,6 +40,22 @@ function addBell() {
     const logoutItem = logout.parentElement;
     logoutItem.parentElement.insertBefore(item, logoutItem);
 
+    // Banner under the header for "almost your turn"
+    // (not on Queue Status, that page has its own "Almost your turn!" card)
+    if (window.location.pathname.indexOf("queue_status.html") === -1) {
+        const banner = document.createElement("div");
+        banner.className = "turn-banner";
+        banner.id = "turn-banner";
+        banner.hidden = true;
+        banner.innerHTML =
+            '<span class="turn-text" id="turn-text"></span>' +
+            '<button type="button" class="btn" id="turn-view">View status</button>' +
+            '<button type="button" class="turn-close" id="turn-close" aria-label="Dismiss">&times;</button>';
+        // right under the top bar (the <header>, or the <div> around the nav on the calendar page)
+        const topBar = logoutItem.closest("nav").parentElement;
+        topBar.parentElement.insertBefore(banner, topBar.nextSibling);
+    }
+
     loadBell();
     setInterval(loadBell, BELL_CHECK_EVERY);
 }
@@ -48,9 +65,9 @@ function toggleBell() {
     const panel = document.getElementById("bell-panel");
     panel.hidden = !panel.hidden;
 
-    // On a phone the list goes right under the header
+    // On a phone the list goes right under the top bar
     if (window.innerWidth <= 640) {
-        panel.style.top = (document.querySelector("header").getBoundingClientRect().bottom + 8) + "px";
+        panel.style.top = (document.querySelector("nav").parentElement.getBoundingClientRect().bottom + 8) + "px";
     }
 }
 
@@ -137,6 +154,59 @@ function showBell() {
 
         list.appendChild(item);
     }
+
+    showTurnBanner();
+}
+
+// Show the newest unread "almost your turn" notification as a banner under the header
+function showTurnBanner() {
+    const banner = document.getElementById("turn-banner");
+    if (banner === null) {
+        return;
+    }
+
+    let almost = null;
+    for (let i = 0; i < bellNotifications.length; i++) {
+        if (almost === null && bellNotifications[i].type === "almost" && bellNotifications[i].status === "sent") {
+            almost = bellNotifications[i];
+        }
+    }
+
+    if (almost === null) {
+        banner.hidden = true;
+        return;
+    }
+
+    document.getElementById("turn-text").innerText = almost.message;
+
+    // View status: mark it read and open the Queue Status page
+    document.getElementById("turn-view").onclick = function () {
+        openNotification(almost.id);
+    };
+
+    // x: mark it read and hide the banner
+    document.getElementById("turn-close").onclick = function () {
+        dismissNotification(almost.id);
+    };
+
+    banner.hidden = false;
+}
+
+// Mark one notification as read and stay on the page
+async function dismissNotification(id) {
+    const userName = sessionStorage.getItem("userName");
+
+    try {
+        await fetch("/api/notifications/" + id + "/viewed", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userName: userName })
+        });
+    } catch (err) {
+        console.log("Could not mark the notification as read.");
+    }
+
+    loadBell();
 }
 
 // Mark one notification as read, then go to the Queue Status page

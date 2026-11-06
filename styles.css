@@ -664,6 +664,37 @@ a.btn-danger:hover { color: #fff; }
     background: var(--bg);
 }
 
+/* "Almost your turn" banner under the header (bell.js) */
+.turn-banner {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin: 16px 20px 0;
+    padding: 12px 16px;
+    border: 2px solid #f59e0b;
+    border-radius: var(--radius);
+    background: #fffbeb;
+    font-weight: 600;
+}
+
+.turn-banner[hidden] {
+    display: none;
+}
+
+.turn-text {
+    flex: 1 1 240px;
+}
+
+.turn-close {
+    border: none;
+    background: none;
+    color: var(--text-muted);
+    font-size: 1.4rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
 /* "View all notifications" scrolls to the dashboard card below the sticky header */
 #notifications {
     scroll-margin-top: 100px;
@@ -705,6 +736,11 @@ a:focus-visible {
     }
 
     body > p {
+        margin-left: 16px;
+        margin-right: 16px;
+    }
+
+    .turn-banner {
         margin-left: 16px;
         margin-right: 16px;
     }

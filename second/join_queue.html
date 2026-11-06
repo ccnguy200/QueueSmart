@@ -369,9 +369,8 @@
                             });
                         }
 
-                        showPopup("Successfully joined the queue!", function () {
-                            window.location.href = "queue_status.html?service=" + encodeURIComponent(payload.service);
-                        });
+                        // go straight to Queue Status, it says "You're in the queue!" at the top
+                        window.location.href = "queue_status.html?service=" + encodeURIComponent(payload.service) + "&joined=1";
                     } else {
                         showError(data.message || "Failed to join queue.");
                     }
