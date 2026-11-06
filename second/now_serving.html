@@ -21,14 +21,14 @@
         </header>
 
         <!-- Now Serving Screen -->
-        <!-- Note: Mock Data used -->
+        <!-- Shows the queues from the backend, updated every 5 seconds -->
         <h1>Now Serving</h1>
-        <p>Only first names and last initials are shown. Last updated: <span id="updated-time"></span></p>
+        <p>Names are shortened to keep them private. Last updated: <span id="updated-time"></span></p>
 
         <!-- One card per service, added by renderDisplay() -->
         <div id="display"></div>
 
-        <!-- Note: Mock Data used, no backend -->
+        <!-- script will load the services and the queue from the backend -->
         <script>            // Desk each service's queue serves at (mock data)
             const desks = {
                 "Academic Advising": "Desk 1",
@@ -75,8 +75,12 @@
                 }
 
                 const parts = name.split(" ");
-                const first = parts[0].charAt(0).toUpperCase() + parts[0].substring(1);
+                let first = parts[0].charAt(0).toUpperCase() + parts[0].substring(1);
                 if (parts.length === 1) {
+                    // A one-word email name ("jchen23@uh.edu") can be the whole username, so only the start is shown
+                    if (at !== -1 && first.length > 3) {
+                        first = first.substring(0, 3) + "***";
+                    }
                     return first;
                 }
                 return first + " " + parts[parts.length - 1].charAt(0).toUpperCase() + ".";

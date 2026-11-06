@@ -254,6 +254,13 @@
                     body.appendChild(row);
                 }
 
+                // No appointments yet: say so instead of showing an empty table
+                if (events.length === 0){
+                    const row = document.createElement("tr");
+                    row.innerHTML = '<td colspan="5"><span class="empty">No appointments yet. <a href="join_queue.html">Join a queue</a> to add one.</span></td>';
+                    body.appendChild(row);
+                }
+
                 showReminders();
             }
 

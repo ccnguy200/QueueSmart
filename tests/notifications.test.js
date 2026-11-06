@@ -66,6 +66,16 @@ describe('formatTime', function () {
     });
 });
 
+describe('formatDay', function () {
+    test('today has no day in front of the time', function () {
+        expect(notifications.formatDay(new Date())).toBe("");
+    });
+
+    test('an older date shows the month and day', function () {
+        expect(notifications.formatDay(new Date(2026, 9, 9, 9, 5))).toBe("Oct 9, ");
+    });
+});
+
 describe('checkUserName (validation)', function () {
     test('userName is required', function () {
         expect(notifications.checkUserName(undefined)).toBe("userName is required.");
@@ -377,5 +387,8 @@ describe('joining and leaving a queue send notifications', function () {
         expect(rows.length).toBe(2);
         expect(rows[0].queueEntryId).toBe(join.body.data.id);
         expect(rows[0].status).toBe("sent");
+
+        const response = await request(app).get('/api/notifications').query({ userName: "a@email.com" });
+        expect(response.body.notifications[0].queueEntryId).toBe(join.body.data.id);
     });
 });

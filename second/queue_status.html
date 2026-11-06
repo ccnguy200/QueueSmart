@@ -58,8 +58,8 @@
 
         <!-- Notification: shown when it is almost the user's turn -->
         <div class="card" id="alert-card" style="display:none; border: 2px solid darkorange;">
-            <h3>Almost your turn!</h3>
-            <!-- Message is set by renderStatus() -->
+            <h3 id="alert-title">Almost your turn!</h3>
+            <!-- Title and message are set by renderStatus() -->
             <p id="alert-message"></p>
         </div>
 
@@ -211,7 +211,7 @@
                 ["You joined the " + serviceNames[serviceKey] + " queue.", "10:02 AM"]
             ];
 
-            // The user's entry in the backend queue (null = not found, the page shows the mock data)
+            // The user's entry in the backend queue (null = not found: nobody logged in sees the mock data)
             let myEntry = null;
 
             // Timer that checks the position again every 15 seconds
@@ -277,9 +277,15 @@
 
                 // Show "almost your turn" when close to the front (not served or missed)
                 const alertCard = document.getElementById("alert-card");
-                if (checkedIn) {
+                if (position === 1) {
+                    // #1 is the person being called (the same as the Now Serving screen)
+                    document.getElementById("alert-title").innerText = "It's your turn!";
+                    document.getElementById("alert-message").innerText = "Please go to the desk at " + place.name + " now.";
+                } else if (checkedIn) {
+                    document.getElementById("alert-title").innerText = "Almost your turn!";
                     document.getElementById("alert-message").innerText = "You are checked in. Please wait to be called.";
                 } else {
+                    document.getElementById("alert-title").innerText = "Almost your turn!";
                     document.getElementById("alert-message").innerText = "Please head to " + place.name + " and check in when you get there.";
                 }
                 if (!missed && status !== "Served" && position <= notifyAtPosition) {
@@ -556,10 +562,43 @@
                 }
 
                 const mainCard = document.getElementById("service-name").parentElement;
-                mainCard.innerHTML = "<h3>You are not in a queue right now.</h3>" +
-                    "<p>Join a queue to see your position and wait time here.</p>" +
+                mainCard.innerHTML = '<h3 id="not-in-queue-title">You are not in a queue right now.</h3>' +
+                    '<p id="not-in-queue-text">Join a queue to see your position and wait time here.</p>' +
                     '<a href="join_queue.html" class="btn">Join a Queue</a>';
                 mainCard.style.display = "block";
+            }
+
+            // The user's entry is gone while the page was open: use the History records
+            // to say if they were served or missed their turn
+            async function showWhatHappened() {
+                const userName = sessionStorage.getItem("userName");
+
+                try {
+                    const response = await fetch("/api/history?userName=" + encodeURIComponent(userName));
+                    const data = await response.json();
+
+                    if (!response.ok || !data.success || data.history.length === 0) {
+                        return;
+                    }
+
+                    // The newest record, only if it is for this queue
+                    const last = data.history[0];
+                    if (last.service !== serviceKey) {
+                        return;
+                    }
+
+                    const title = document.getElementById("not-in-queue-title");
+                    const text = document.getElementById("not-in-queue-text");
+                    if (last.outcome === "Served") {
+                        title.innerText = "You have been served!";
+                        text.innerText = "Thanks for waiting in the " + serviceNames[serviceKey] + " queue.";
+                    } else if (last.outcome === "Missed") {
+                        title.innerText = "You missed your turn.";
+                        text.innerText = "You were taken out of the " + serviceNames[serviceKey] + " queue. You can join it again.";
+                    }
+                } catch (err) {
+                    console.log("Could not load what happened.");
+                }
             }
 
             // Get the user's position in this queue from the backend
@@ -598,9 +637,15 @@
                             window.location.replace("queue_status.html?service=" + encodeURIComponent(otherService));
                         } else {
                             // The user is not in any queue (or was just served): stop checking
+                            const wasInQueue = myEntry !== null;
                             myEntry = null;
                             clearInterval(refreshTimer);
                             showNotInQueue();
+
+                            // They were in this queue a moment ago: say what happened
+                            if (wasInQueue) {
+                                showWhatHappened();
+                            }
                         }
                         return;
                     }
@@ -612,18 +657,33 @@
                         addUpdate("Your position is now #" + found.position + ".");
                     }
 
-                    myEntry = found;
-                    position = myEntry.position;
+                    // Use the backend position only the first time or when it really changed
+                    // (so Running Late, Rejoin and Simulate Next Update stay on the page)
+                    if (myEntry === null || found.position !== myEntry.position) {
+                        position = found.position;
 
-                    // Close to the front: Almost Ready
-                    if (position <= notifyAtPosition) {
-                        statusIndex = 1;
+                        // Close to the front: Almost Ready, otherwise Waiting
+                        if (position <= notifyAtPosition) {
+                            statusIndex = 1;
+                        } else {
+                            statusIndex = 0;
+                        }
                     }
+
+                    myEntry = found;
 
                     // Just joined (join_queue.html sends ?joined=1): say so at the top
                     if (params.get("joined") === "1") {
-                        document.getElementById("joined-message").innerText = "You are #" + position + " in the " + serviceNames[serviceKey] + " queue. We will let you know when it is almost your turn.";
+                        let joinedText = "You are #" + position + " in the " + serviceNames[serviceKey] + " queue.";
+                        // Close to the front they already see "Almost your turn!", so only promise a heads-up when further back
+                        if (position > notifyAtPosition) {
+                            joinedText = joinedText + " We will let you know when it is almost your turn.";
+                        }
+                        document.getElementById("joined-message").innerText = joinedText;
                         document.getElementById("joined-card").style.display = "block";
+
+                        // Show it only once: a reload or the Back button should not show it again
+                        window.history.replaceState(null, "", "queue_status.html?service=" + encodeURIComponent(serviceKey));
                     }
 
                     renderStatus();

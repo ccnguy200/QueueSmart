@@ -97,7 +97,8 @@
             <p><strong>Transaction Status:</strong> Processed</p>
         </div>
 
-        <!-- Feature 2: Notifications summary (newest first), "View all notifications" in the bell opens it -->
+        <!-- Feature 2: Notifications summary (newest first), bell.js fills it with the same list as the bell -->
+        <!-- "View all notifications" in the bell opens it (the list below is mock data for when nobody is logged in) -->
         <div class="card" id="notifications">
             <h3>Notifications Summary</h3>
             <ul class="updates">
@@ -264,11 +265,21 @@
                     appointmentStatus = myEntry.status;
                 }
 
+                // No reminder if the appointment is today or earlier (same as the calendar)
+                let reminder = "1 day before";
+                const dateParts = myEntry.queueDate.split("-");
+                const appointmentDay = new Date(Number(dateParts[0]), Number(dateParts[1]) - 1, Number(dateParts[2]));
+                const now = new Date();
+                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                if (appointmentDay <= today) {
+                    reminder = "-";
+                }
+
                 card.innerHTML = "<h3>Upcoming Queue Services</h3>" +
                     "<p><strong>Upcoming Service:</strong> " + myEntry.service + "</p>" +
                     "<p><strong>Date and Time:</strong> " + formatDateTime(myEntry.queueDate, myEntry.queueTime) + "</p>" +
                     "<p><strong>Appointment Status:</strong> " + appointmentStatus + "</p>" +
-                    "<p><strong>Reminder:</strong> 1 day before</p>" +
+                    "<p><strong>Reminder:</strong> " + reminder + "</p>" +
                     '<a href="user_calendar.html" class="btn-secondary">Reschedule or Cancel</a>';
             }
 
@@ -286,10 +297,18 @@
                             closed = closed + ", ";
                         }
                         closed = closed + service.name;
+
+                        // a closed queue still serves the people already in it
+                        if (service.name === myService) {
+                            closed = closed + " (you are still in this queue)";
+                        }
                     } else {
                         let join = '<a href="user_location.html?service=' + encodeURIComponent(service.name) + '">Join Queue</a>';
                         if (service.name === myService) {
                             join = "In this queue";
+                        } else if (places[service.name] === undefined) {
+                            // a service the admin added: the Location page does not know where it is yet
+                            join = "Not available online";
                         }
 
                         const row = document.createElement("tr");
@@ -305,7 +324,7 @@
                 if (closed === "") {
                     document.getElementById("closed-list").innerText = "All services are open right now.";
                 } else {
-                    document.getElementById("closed-list").innerText = "Closed right now: " + closed;
+                    document.getElementById("closed-list").innerText = "Closed to new people right now: " + closed;
                 }
             }
 
@@ -349,54 +368,6 @@
 
             // will run when the page loads
             window.addEventListener('DOMContentLoaded', loadMyCards);
-        </script>
-
-        <!-- script will load the user's notifications from the backend -->
-        <script>
-            async function loadNotifications() {
-                // nobody is logged in: keep the mock list above
-                const userName = sessionStorage.getItem("userName");
-                if (userName === null) {
-                    return;
-                }
-
-                try {
-                    const response = await fetch("/api/notifications?userName=" + encodeURIComponent(userName));
-                    const data = await response.json();
-
-                    if (!response.ok || !data.success) {
-                        return;
-                    }
-
-                    // replace the mock list with the backend's notifications (newest first)
-                    const list = document.querySelector(".updates");
-                    list.innerHTML = "";
-
-                    // no notifications yet
-                    if (data.notifications.length === 0) {
-                        const empty = document.createElement("li");
-                        empty.innerText = "No notifications yet.";
-                        list.appendChild(empty);
-                    }
-
-                    for (let i = 0; i < data.notifications.length; i++) {
-                        const item = document.createElement("li");
-                        item.innerText = data.notifications[i].message;
-
-                        const time = document.createElement("div");
-                        time.className = "time";
-                        time.innerText = data.notifications[i].time;
-                        item.appendChild(time);
-
-                        list.appendChild(item);
-                    }
-                } catch (err) {
-                    console.log("Could not load notifications.");
-                }
-            }
-
-            // will run when the page loads
-            loadNotifications();
         </script>
 
     </body>
