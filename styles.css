@@ -69,6 +69,12 @@ p {
     margin: 4px 0;
 }
 
+/* Text right under <body> (not inside a card) lines up with the page title and the cards */
+body > p {
+    margin-left: 20px;
+    margin-right: 20px;
+}
+
 a {
     color: var(--primary);
 }
@@ -544,6 +550,11 @@ a:focus-visible {
     }
 
     .feature, .card {
+        margin-left: 16px;
+        margin-right: 16px;
+    }
+
+    body > p {
         margin-left: 16px;
         margin-right: 16px;
     }

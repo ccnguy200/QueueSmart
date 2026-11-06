@@ -108,7 +108,7 @@
                 <!-- User inputs exp date next -->
                 <div class="form-group">
                     <label for="exp-date">Expiration Date: <span style="color:red;">*</span></label>
-                    <input type="text" id="exp-date" placeholder="ex. MM/YY" maxlength="5" required>
+                    <input type="text" id="exp-date" placeholder="ex. MM/YY" maxlength="5" required oninput="formatExpDate()">
                 </div>
 
                 <!-- User inputs cvv num next -->
@@ -378,6 +378,26 @@
                 }
 
                 return false;
+            }
+
+            // formatExpDate(): adds the "/" while the user types the expiration date (1228 -> 12/28)
+            function formatExpDate() {
+                const box = document.getElementById("exp-date");
+
+                // keep only the numbers, at most 4 (MMYY)
+                let digits = "";
+                for (let i = 0; i < box.value.length; i++) {
+                    if (box.value[i] >= "0" && box.value[i] <= "9") {
+                        digits = digits + box.value[i];
+                    }
+                }
+                digits = digits.substring(0, 4);
+
+                if (digits.length > 2) {
+                    box.value = digits.substring(0, 2) + "/" + digits.substring(2);
+                } else {
+                    box.value = digits;
+                }
             }
 
             // isAllDigits(): returns true if the text only has the numbers 0-9
