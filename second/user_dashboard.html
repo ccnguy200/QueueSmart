@@ -56,8 +56,8 @@
         </div>
 
         <!-- Location Feature: distance from the user to the queue location -->
-        <!-- Note: mock data used (last time the user checked) -->
-        <div class="card">
+        <!-- Note: mock data used when nobody is logged in (last time the user checked) -->
+        <div class="card" id="location-card">
             <h3>Your Location</h3>
             <!-- Building where the queue is -->
             <p><strong>Queue Location:</strong> Student Service Center 1</p>
@@ -70,8 +70,8 @@
         </div>
 
         <!-- Calendar Feature: User will see an overview of queues they have scheduled to join -->
-        <!-- Notes: mock data used -->
-        <div class="card">
+        <!-- Notes: mock data used when nobody is logged in -->
+        <div class="card" id="upcoming-card">
             <h3>Upcoming Queue Services</h3>
             <!-- Upcoming service -->
             <p><strong>Upcoming Service:</strong> Financial Aid Office</p>
@@ -114,7 +114,7 @@
         </div>
 
         <!-- Feature 3: Active services available -->
-        <!-- Note: mock data used (same services as the admin screens) -->
+        <!-- Note: mock rows until loadMyCards() gets the real services from the backend -->
         <div class="card">
             <h3>Active services available</h3>
             <table>
@@ -126,7 +126,7 @@
                         <th>Join</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="services-body">
                     <!-- Each Join link checks the location first -->
                     <tr>
                         <!-- The user is already in this queue -->
@@ -144,7 +144,7 @@
                 </tbody>
             </table>
             <!-- Closed queues are not listed above -->
-            <p class="hint">Closed right now: Tutoring Services</p>
+            <p class="hint" id="closed-list">Closed right now: Tutoring Services</p>
         </div>
 
         <!-- script will fetch live queue status -->
@@ -164,6 +164,14 @@
                             }
                         }
                         data.queue = myEntries;
+                    }
+
+                    // the logged in user is not in any queue: say so instead of the mock card
+                    if (data.success && userName !== null && data.queue.length === 0) {
+                        const emptyCard = document.querySelector('.card');
+                        emptyCard.innerHTML = '<h3>Current Queue Status</h3>' +
+                            '<p>You are not in a queue right now.</p>' +
+                            '<a href="join_queue.html" class="btn">Join a Queue</a>';
                     }
 
                     if (data.success && data.queue.length > 0) {
@@ -188,6 +196,157 @@
 
             // will run when the page loads
             window.addEventListener('DOMContentLoaded', fetchLiveStatus);
+        </script>
+
+        <!-- location.js has the building for each service -->
+        <script src="../location.js"></script>
+
+        <!-- script will fill the location, upcoming and services cards with real data -->
+        <script>
+            // Turn "2026-12-01" and "13:05" into "December 1, 2026 at 1:05 PM"
+            function formatDateTime(date, time) {
+                const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+                const dateParts = date.split("-");
+                const timeParts = time.split(":");
+                let hour = Number(timeParts[0]);
+                let suffix = "AM";
+
+                if (hour >= 12) {
+                    suffix = "PM";
+                }
+                if (hour === 0) {
+                    hour = 12;
+                }
+                if (hour > 12) {
+                    hour = hour - 12;
+                }
+
+                return months[Number(dateParts[1]) - 1] + " " + Number(dateParts[2]) + ", " + dateParts[0] + " at " + hour + ":" + timeParts[1] + " " + suffix;
+            }
+
+            // Location card: the building where the user's queue is
+            function showMyLocationCard(myEntry) {
+                const card = document.getElementById("location-card");
+
+                if (myEntry === null) {
+                    card.innerHTML = "<h3>Your Location</h3>" +
+                        "<p>You are not in a queue right now.</p>" +
+                        '<a href="user_location.html" class="btn">Check Location</a>';
+                    return;
+                }
+
+                let building = myEntry.service;
+                if (places[myEntry.service] !== undefined) {
+                    building = places[myEntry.service].name;
+                }
+
+                card.innerHTML = "<h3>Your Location</h3>" +
+                    "<p><strong>Queue Location:</strong> " + building + "</p>" +
+                    "<p>You must be within " + allowedMiles + " miles to check in when you get there.</p>" +
+                    '<a href="user_location.html?service=' + encodeURIComponent(myEntry.service) + '" class="btn">Check Location</a>';
+            }
+
+            // Upcoming card: the date and time the user picked when joining
+            function showMyUpcomingCard(myEntry) {
+                const card = document.getElementById("upcoming-card");
+
+                if (myEntry === null) {
+                    card.innerHTML = "<h3>Upcoming Queue Services</h3>" +
+                        "<p>No upcoming queue services.</p>" +
+                        '<a href="user_calendar.html" class="btn-secondary">View Calendar</a>';
+                    return;
+                }
+
+                let appointmentStatus = "Confirmed";
+                if (myEntry.status !== "waiting") {
+                    appointmentStatus = myEntry.status;
+                }
+
+                card.innerHTML = "<h3>Upcoming Queue Services</h3>" +
+                    "<p><strong>Upcoming Service:</strong> " + myEntry.service + "</p>" +
+                    "<p><strong>Date and Time:</strong> " + formatDateTime(myEntry.queueDate, myEntry.queueTime) + "</p>" +
+                    "<p><strong>Appointment Status:</strong> " + appointmentStatus + "</p>" +
+                    "<p><strong>Reminder:</strong> 1 day before</p>" +
+                    '<a href="user_calendar.html" class="btn-secondary">Reschedule or Cancel</a>';
+            }
+
+            // Services table: open services can be joined, closed ones are listed under the table
+            function showServices(services, myService) {
+                const body = document.getElementById("services-body");
+                body.innerHTML = "";
+                let closed = "";
+
+                for (let i = 0; i < services.length; i++) {
+                    const service = services[i];
+
+                    if (service.open === false) {
+                        if (closed !== "") {
+                            closed = closed + ", ";
+                        }
+                        closed = closed + service.name;
+                    } else {
+                        let join = '<a href="user_location.html?service=' + encodeURIComponent(service.name) + '">Join Queue</a>';
+                        if (service.name === myService) {
+                            join = "In this queue";
+                        }
+
+                        const row = document.createElement("tr");
+                        row.innerHTML = "<td></td><td></td>" +
+                            '<td><span class="badge badge-open">Open</span></td>' +
+                            "<td>" + join + "</td>";
+                        row.children[0].innerText = service.name;
+                        row.children[1].innerText = service.description;
+                        body.appendChild(row);
+                    }
+                }
+
+                if (closed === "") {
+                    document.getElementById("closed-list").innerText = "All services are open right now.";
+                } else {
+                    document.getElementById("closed-list").innerText = "Closed right now: " + closed;
+                }
+            }
+
+            async function loadMyCards() {
+                try {
+                    const queueResponse = await fetch('/api/queue/status');
+                    const queueData = await queueResponse.json();
+                    const servicesResponse = await fetch('/api/services');
+                    const servicesData = await servicesResponse.json();
+
+                    if (!queueData.success || !servicesData.success) {
+                        return;
+                    }
+
+                    // the logged in user's latest queue entry (null = not in a queue)
+                    const userName = sessionStorage.getItem("userName");
+                    let myEntry = null;
+                    if (userName !== null) {
+                        for (let i = 0; i < queueData.queue.length; i++) {
+                            if (queueData.queue[i].userName === userName) {
+                                myEntry = queueData.queue[i];
+                            }
+                        }
+                    }
+
+                    // nobody is logged in: keep the mock location and upcoming cards
+                    if (userName !== null) {
+                        showMyLocationCard(myEntry);
+                        showMyUpcomingCard(myEntry);
+                    }
+
+                    let myService = "";
+                    if (myEntry !== null) {
+                        myService = myEntry.service;
+                    }
+                    showServices(servicesData.services, myService);
+                } catch (err) {
+                    console.log("Could not load the dashboard cards.");
+                }
+            }
+
+            // will run when the page loads
+            window.addEventListener('DOMContentLoaded', loadMyCards);
         </script>
 
         <!-- script will load the user's notifications from the backend -->

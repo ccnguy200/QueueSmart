@@ -106,7 +106,8 @@ async function saveJoined(entry) {
 
 // Trigger 2: users who are close to being served
 // For every waiting entry, count the waiting people ahead of it in the same service
-// (they joined earlier), and notify it once when it reaches NOTIFY_AT_POSITION or closer
+// (a smaller position number, or the same number but earlier in the list),
+// and notify it once when it reaches NOTIFY_AT_POSITION or closer
 // Returns how many notifications were made
 async function saveAlmost(queue) {
     if (!Array.isArray(queue)) {
@@ -120,9 +121,13 @@ async function saveAlmost(queue) {
 
         if (entry.status === "waiting") {
             let position = 1;
-            for (let j = 0; j < i; j++) {
-                if (queue[j].service === entry.service && queue[j].status === "waiting") {
-                    position++;
+            for (let j = 0; j < queue.length; j++) {
+                if (j !== i && queue[j].service === entry.service && queue[j].status === "waiting") {
+                    if (queue[j].position < entry.position) {
+                        position++;
+                    } else if (queue[j].position === entry.position && j < i) {
+                        position++;
+                    }
                 }
             }
 

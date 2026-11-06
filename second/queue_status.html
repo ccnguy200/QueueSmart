@@ -525,12 +525,30 @@
             }
 
             // Wait time in minutes
-            // With a backend entry: people ahead x minutes per person (same rule as the backend)
+            // With a backend entry: the backend's own estimate (same as the dashboard)
+            // If the position was changed on this page: people ahead x minutes per person
             function waitMinutes() {
                 if (myEntry !== null) {
+                    if (position === myEntry.position) {
+                        return myEntry.estimatedWaitTime;
+                    }
                     return (position - 1) * backendMinutes[serviceKey];
                 }
                 return position * minutesPerPerson;
+            }
+
+            // The logged in user is not in any queue: say so instead of showing the mock data
+            function showNotInQueue() {
+                const cards = document.querySelectorAll(".card");
+                for (let i = 0; i < cards.length; i++) {
+                    cards[i].style.display = "none";
+                }
+
+                const mainCard = document.getElementById("service-name").parentElement;
+                mainCard.innerHTML = "<h3>You are not in a queue right now.</h3>" +
+                    "<p>Join a queue to see your position and wait time here.</p>" +
+                    '<a href="join_queue.html" class="btn">Join a Queue</a>';
+                mainCard.style.display = "block";
             }
 
             // Get the user's position in this queue from the backend
@@ -565,8 +583,10 @@
                         // The user is in a different queue: show the page for that queue instead
                         if (otherService === "Academic Advising" || otherService === "Financial Aid Office" || otherService === "Tutoring Services") {
                             window.location.replace("queue_status.html?service=" + encodeURIComponent(otherService));
+                        } else {
+                            // The user is not in any queue
+                            showNotInQueue();
                         }
-                        // The user is not in any queue: keep the mock data
                         return;
                     }
 

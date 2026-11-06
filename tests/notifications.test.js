@@ -164,6 +164,22 @@ describe('checkQueue (trigger 2: user is close to being served)', function () {
         expect(await getMessages("c@email.com")).toEqual([]);
     });
 
+    test('counts by position number, not by the order of the list', async function () {
+        const queue = [
+            makeEntry("a@email.com", "Academic Advising", "waiting"),
+            makeEntry("b@email.com", "Academic Advising", "waiting"),
+            makeEntry("c@email.com", "Academic Advising", "waiting")
+        ];
+        queue[0].position = 3;
+        queue[1].position = 1;
+        queue[2].position = 2;
+
+        expect(await notifications.checkQueue(queue)).toBe(2);
+        expect(await getMessages("b@email.com")).toEqual(["It's almost your turn! You are next in the Academic Advising queue."]);
+        expect(await getMessages("c@email.com")).toEqual(["It's almost your turn! You are #2 in the Academic Advising queue."]);
+        expect(await getMessages("a@email.com")).toEqual([]);
+    });
+
     test('notifies each entry only once', async function () {
         const queue = [makeEntry("a@email.com", "Academic Advising", "waiting")];
 
@@ -275,6 +291,22 @@ describe('joining and leaving a queue send notifications', function () {
             "It's almost your turn! You are #2 in the Academic Advising queue.",
             "You joined the Academic Advising queue. You are #3. Estimated wait: 60 minutes."
         ]);
+    });
+
+    test('after the admin moves someone up, the right person gets "almost your turn"', async function () {
+        await request(app).post('/api/queue/join').send(joinRequest("a@email.com", "Financial Aid Office"));
+        await request(app).post('/api/queue/join').send(joinRequest("b@email.com", "Financial Aid Office"));
+        await request(app).post('/api/queue/join').send(joinRequest("c@email.com", "Financial Aid Office"));
+        const last = await request(app).post('/api/queue/join').send(joinRequest("d@email.com", "Financial Aid Office"));
+
+        await request(app).post('/api/admin/queue/reorder').send({ queueId: last.body.data.id, direction: "up" });
+        await request(app).post('/api/admin/queue/reorder').send({ queueId: last.body.data.id, direction: "up" });
+        await request(app).post('/api/admin/queue/serve').send({ service: "Financial Aid Office" });
+
+        expect(await getMessages("d@email.com")).toContain("It's almost your turn! You are next in the Financial Aid Office queue.");
+        const others = await getMessages("c@email.com");
+        expect(others.length).toBe(1);
+        expect(others[0]).toContain("You are #3.");
     });
 
     test('the notifications are saved in the NotificationHistory table', async function () {

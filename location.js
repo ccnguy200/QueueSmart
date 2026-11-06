@@ -1,4 +1,4 @@
-// Location feature: shared by user_location.html and queue_status.html
+// Location feature: shared by user_location.html, queue_status.html and user_dashboard.html
 // Note: Mock data used (approximate spots on the UH campus)
 
 // Each service and the building where its queue is
