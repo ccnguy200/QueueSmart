@@ -209,8 +209,26 @@
                 const status = document.getElementById("location-status");
                 const link = document.getElementById("location-link");
 
-                if (service === currentQueue) {
+                // No service picked yet: just say what to do first
+                if (service === "") {
+                    status.innerText = "Pick a service, then check your location.";
+                    status.style.color = "";
+                    link.style.display = "inline";
+                    link.href = "user_location.html";
+                }
+                else if (service === currentQueue) {
                     status.innerText = "You are already in the " + currentQueue + " queue.";
+                    status.style.color = "#c0392b";
+                    link.style.display = "none";
+                }
+                // Closed or full: say so before the user fills in the form
+                else if (queueOpen[service] === false) {
+                    status.innerText = "This queue is closed right now.";
+                    status.style.color = "#c0392b";
+                    link.style.display = "none";
+                }
+                else if (queueSize[service] >= maxQueueSize[service]) {
+                    status.innerText = "This queue is full right now. Please try again later.";
                     status.style.color = "#c0392b";
                     link.style.display = "none";
                 }
@@ -384,12 +402,18 @@
             // formatExpDate(): adds the "/" while the user types the expiration date (1228 -> 12/28)
             function formatExpDate() {
                 const box = document.getElementById("exp-date");
+                let text = box.value;
+
+                // "1/28" means January: put a 0 in front of a one-digit month
+                if (text.length >= 2 && text[1] === "/") {
+                    text = "0" + text;
+                }
 
                 // keep only the numbers, at most 4 (MMYY)
                 let digits = "";
-                for (let i = 0; i < box.value.length; i++) {
-                    if (box.value[i] >= "0" && box.value[i] <= "9") {
-                        digits = digits + box.value[i];
+                for (let i = 0; i < text.length; i++) {
+                    if (isAllDigits(text[i])) {
+                        digits = digits + text[i];
                     }
                 }
                 digits = digits.substring(0, 4);
@@ -486,20 +510,25 @@
                     }
 
                     updateWaitTime();
+                    showLocationStatus();
                 } catch (err) {
                     console.log("Could not load the queue information.");
                 }
             }
 
-            // leaveQueue(): takes the user out of the backend queue, then goes to the dashboard
-            async function leaveQueue(event) {
+            // leaveQueue(): asks first, because leaving gives up the user's spot (same as Queue Status)
+            function leaveQueue(event) {
                 // No backend entry (mock data): the link just opens the dashboard
                 if (currentQueueId === "") {
                     return;
                 }
 
                 event.preventDefault();
+                showConfirm("Leave the " + currentQueue + " queue? You will lose your spot.", leaveNow);
+            }
 
+            // leaveNow(): the user clicked Yes: takes them out of the backend queue, then goes to the dashboard
+            async function leaveNow() {
                 try {
                     const response = await fetch('/api/queue/leave', {
                         method: 'POST',

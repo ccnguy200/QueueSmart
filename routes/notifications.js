@@ -37,6 +37,18 @@ function formatTime(date) {
     return hours + ":" + minutes + " " + ampm;
 }
 
+// The day in front of the time ("Nov 4, "), or "" when the date is today
+// so older notifications do not look like they came today
+function formatDay(date) {
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const today = new Date();
+
+    if (date.getFullYear() === today.getFullYear() && date.getMonth() === today.getMonth() && date.getDate() === today.getDate()) {
+        return "";
+    }
+    return months[date.getMonth()] + " " + date.getDate() + ", ";
+}
+
 // Check a user name
 // Returns an error message, or "" if the user name is fine
 function checkUserName(userName) {
@@ -205,8 +217,9 @@ async function getNotifications(req, res) {
                 type: rows[i].type,
                 message: rows[i].message,
                 status: rows[i].status,
+                queueEntryId: rows[i].queueEntryId,
                 timestamp: rows[i].timestamp,
-                time: formatTime(rows[i].timestamp)
+                time: formatDay(rows[i].timestamp) + formatTime(rows[i].timestamp)
             });
         }
 
@@ -311,5 +324,6 @@ module.exports = {
     checkQueue: checkQueue,
     addNotification: addNotification,
     checkUserName: checkUserName,
-    formatTime: formatTime
+    formatTime: formatTime,
+    formatDay: formatDay
 };
