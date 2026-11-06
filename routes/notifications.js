@@ -10,6 +10,9 @@ const NOTIFY_AT_POSITION = 2;
 // Longest user name we accept (same as the NotificationHistory table)
 const MAX_USER_NAME_LENGTH = 100;
 
+// The two kinds of notifications (the table also keeps "history" records for the History page)
+const NOTIFICATION_TYPES = ["joined", "almost"];
+
 // Notifications are saved one after another, in the order they happen
 // "saving" is the newest save, the GET route waits for it so it never misses one
 let saving = Promise.resolve();
@@ -186,7 +189,7 @@ async function getNotifications(req, res) {
         await saving;
 
         const rows = await NotificationHistory.findAll({
-            where: { userName: userName },
+            where: { userName: userName, type: NOTIFICATION_TYPES },
             order: [['id', 'DESC']]
         });
 
@@ -204,7 +207,7 @@ async function getNotifications(req, res) {
 
         await NotificationHistory.update(
             { status: "viewed" },
-            { where: { userName: userName, status: "sent" } }
+            { where: { userName: userName, type: NOTIFICATION_TYPES, status: "sent" } }
         );
 
         return res.json({

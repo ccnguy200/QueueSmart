@@ -231,6 +231,14 @@ describe('GET /api/notifications', function () {
         expect(await NotificationHistory.count({ where: { userName: "b@email.com", status: "sent" } })).toBe(1);
     });
 
+    test('history records in the same table are not shown as notifications', async function () {
+        await notifications.addNotification("a@email.com", "joined", "Hello");
+        await NotificationHistory.create({ userName: "a@email.com", type: "history", message: "a@email.com was Served from the Tutoring Services queue." });
+
+        expect(await getMessages("a@email.com")).toEqual(["Hello"]);
+        expect(await NotificationHistory.count({ where: { type: "history", status: "sent" } })).toBe(1);
+    });
+
     test('500 when the database is not working', async function () {
         jest.spyOn(NotificationHistory, 'findAll').mockRejectedValue(new Error("database is down"));
 
