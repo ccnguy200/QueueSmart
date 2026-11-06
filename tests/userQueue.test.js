@@ -160,4 +160,26 @@ describe('Unit Tests for User Module', () => {
         const updated = await QueueEntry.findByPk(entry.id);
         expect(updated.status).toBe("Canceled");
     });
+
+    // Joining must link the entry to the service Queue and the user (foreign keys)
+    test('Joining links the entry to the service Queue and user', async () => {
+        const { Service, Queue, UserCredentials } = require('../tables');
+        const svc = await Service.create({
+            name: "Academic Advising", description: "x", duration: 30, maxSize: 10,
+            priority: "High", open: true, date: "2026-10-26", time: "09:00"
+        });
+        const queue = await Queue.create({ serviceId: svc.id, status: "open" });
+        const user = await UserCredentials.create({ email: "fk@test.com", password: "hashed", role: "user" });
+
+        const res = await sendRequest(importApp).post('/api/queue/join').send({
+            userName: "fk@test.com", service: "Academic Advising",
+            queueDate: "2026-10-12", queueTime: "07:00",
+            cardName: "Test", cardNumber: "1234567890123456", expDate: "12/29", cvv: "123"
+        });
+        expect(res.statusCode).toBe(201);
+
+        const entry = await QueueEntry.findOne({ where: { userName: "fk@test.com" } });
+        expect(entry.queueId).toBe(queue.id);
+        expect(entry.userId).toBe(user.id);
+    });
 });

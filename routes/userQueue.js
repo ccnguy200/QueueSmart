@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 const notifications = require('./notifications');
 const { isServiceOpen } = require('./services');
-const { QueueEntry } = require('../tables');
+const { QueueEntry, Service, Queue, UserCredentials } = require('../tables');
 
 // wait-time estimation logic
 // rule based: position * expected duration
@@ -60,6 +60,21 @@ router.post('/join', async (req, res) => {
         // determine estimated wait time 
         const estimatedWaitTime = (position - 1) * duration;
 
+        // Link this entry to the service's queue row and the user's account (foreign keys)
+        let queueId = null;
+        let userId = null;
+        try {
+            const svc = await Service.findOne({ where: { name: service } });
+            if (svc) {
+                const q = await Queue.findOne({ where: { serviceId: svc.id } });
+                if (q) queueId = q.id;
+            }
+            const account = await UserCredentials.findOne({ where: { email: String(userName || "").toLowerCase().trim() } });
+            if (account) userId = account.id;
+        } catch (e) {
+            // non-fatal: the queue entry is still created below
+        }
+
         // create new user entry to add into queue
         const userEntry = await QueueEntry.create({
             userName: userName || "Unknown",
@@ -68,14 +83,16 @@ router.post('/join', async (req, res) => {
             queueTime: queueTime,
             position: position,
             estimatedWaitTime: estimatedWaitTime,
-            status: "waiting"
+            status: "waiting",
+            queueId: queueId,
+            userId: userId
         });
 
         // send notifications: user joined the queue + anyone close to being served
         if (notifications) {
             const activeQueue = await QueueEntry.findAll();
-            if (typeof notifications.notifyJoined === 'function') notifications.notifyJoined(userEntry);
-            if (typeof notifications.checkQueue === 'function') notifications.checkQueue(activeQueue);
+            if (typeof notifications.notifyJoined === 'function') await notifications.notifyJoined(userEntry);
+            if (typeof notifications.checkQueue === 'function') await notifications.checkQueue(activeQueue);
         }
 
         // return response once created along w/ updated queue data

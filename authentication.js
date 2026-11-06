@@ -38,8 +38,10 @@ async function register() {
     let first = document.getElementById("first").value.toLowerCase().trim();
     let second = document.getElementById("second").value;
     let role = document.getElementById("role").value;
+    let fullNameEl = document.getElementById("fullName");
+    let fullName = fullNameEl ? fullNameEl.value.trim() : "";
 
-    const user = {first: first, second: second, role: role};
+    const user = {first: first, second: second, role: role, fullName: fullName};
 
     if(role == "admin"){
         user.cardNumber = document.getElementById("cardNumber").value.trim();

@@ -2,7 +2,7 @@
 // (to install use 'npm install' in the console)
 const request = require('supertest');
 const app = require('../server');
-const { sequelize } = require('../tables');
+const { sequelize, UserProfile } = require('../tables');
 const { resetUsers } = require('../server');
 
 describe('Unit Tests for Authentication', () => {
@@ -155,5 +155,34 @@ describe('Unit Tests for Authentication', () => {
 
         expect(response.statusCode).toBe(400);
         expect(response.body.error).toBeDefined();
+    });
+
+    // Registration must create a matching UserProfile row
+    test('Registration creates a UserProfile', async () => {
+        await request(app).post('/api/auth/register').send({
+            first: "profile@email.com", second: "password12", role: "user", fullName: "Profile Person"
+        });
+        const profile = await UserProfile.findOne({ where: { email: "profile@email.com" } });
+        expect(profile).not.toBeNull();
+        expect(profile.fullName).toBe("Profile Person");
+        expect(profile.userId).toBeDefined();
+    });
+
+    // GET /api/auth/profile returns the stored profile
+    test('GET /api/auth/profile returns the stored profile', async () => {
+        await request(app).post('/api/auth/register').send({
+            first: "profile2@email.com", second: "password12", role: "user",
+            fullName: "Second Person", contactInfo: "555-1234", preferences: "email"
+        });
+        const res = await request(app).get('/api/auth/profile?email=profile2@email.com');
+        expect(res.statusCode).toBe(200);
+        expect(res.body.profile.fullName).toBe("Second Person");
+        expect(res.body.profile.contactInfo).toBe("555-1234");
+    });
+
+    // GET profile for an unknown email returns 404
+    test('GET /api/auth/profile returns 404 for an unknown email', async () => {
+        const res = await request(app).get('/api/auth/profile?email=nobody@email.com');
+        expect(res.statusCode).toBe(404);
     });
 });
