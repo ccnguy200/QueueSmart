@@ -24,7 +24,7 @@ app.use('/second', express.static(path.join(__dirname, 'second')));
 app.use('/images', express.static(path.join(__dirname, 'images')));
 
 // Front-end files in the main folder (server.js, routes/ and tests/ are not shared)
-const frontEndFiles = ['index.html', 'styles.css', 'authentication.js', 'popup.js', 'location.js'];
+const frontEndFiles = ['index.html', 'styles.css', 'authentication.js', 'popup.js', 'location.js', 'bell.js'];
 for (let i = 0; i < frontEndFiles.length; i++) {
     app.get('/' + frontEndFiles[i], function (req, res) {
         res.sendFile(frontEndFiles[i], { root: __dirname });

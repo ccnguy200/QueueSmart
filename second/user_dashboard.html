@@ -6,6 +6,8 @@
 
         <!-- Link style sheet for uniform design and text -->
         <link rel="stylesheet" href="../styles.css">
+        <!-- Notification bell in the header (shows new notifications) -->
+        <script src="../bell.js"></script>
     </head>
     <!-- Body content -->
     <body>
@@ -95,8 +97,8 @@
             <p><strong>Transaction Status:</strong> Processed</p>
         </div>
 
-        <!-- Feature 2: Notifications summary (newest first) -->
-        <div class="card">
+        <!-- Feature 2: Notifications summary (newest first), "View all notifications" in the bell opens it -->
+        <div class="card" id="notifications">
             <h3>Notifications Summary</h3>
             <ul class="updates">
                 <!-- Queue update: change in user's position -->
