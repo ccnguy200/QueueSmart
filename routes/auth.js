@@ -4,10 +4,11 @@
 const express = require('express');
 // For encrypting passwords
 const bcrypt = require('bcryptjs');
-const { UserCredentials } = require('../tables');
+const { UserCredentials, UserProfile } = require('../tables');
 const router = express.Router();
 
 async function resetUsers() {
+    await UserProfile.destroy({where: {}, truncate: true});
     await UserCredentials.destroy({where: {}, truncate: true});
 }
 
@@ -108,11 +109,42 @@ async function checkRegister(req, res) {
     }
 
     const hashed = await bcrypt.hash(password, 10);
-    await UserCredentials.create({email, password: hashed, role})
+    const user = await UserCredentials.create({email, password: hashed, role});
+
+    // Create this user's profile in the UserProfile table
+    const fullName = String(req.body.fullName || "").trim() || email.split("@")[0];
+    await UserProfile.create({
+        userId: user.id,
+        fullName: fullName,
+        email: email,
+        contactInfo: String(req.body.contactInfo || "").trim(),
+        preferences: String(req.body.preferences || "").trim()
+    });
 
     res.json({success: true, role});
     
 }
+
+// route: get a user's profile by email
+router.get('/profile', async function (req, res) {
+    const email = String(req.query.email || "").toLowerCase().trim();
+
+    if (!email) {
+        return res.status(400).json({ success: false, error: "Email is required." });
+    }
+
+    try {
+        const user = await UserCredentials.findOne({ where: { email } });
+        if (!user) {
+            return res.status(404).json({ success: false, error: "User not found." });
+        }
+
+        const profile = await UserProfile.findOne({ where: { userId: user.id } });
+        return res.json({ success: true, profile: profile });
+    } catch (err) {
+        return res.status(500).json({ success: false, error: "Database error" });
+    }
+});
 
 router.post('/login', (req, res, next) => checkLogin(req, res).catch(next));
 router.post('/register', (req, res, next) => checkRegister(req, res).catch(next));
