@@ -97,9 +97,16 @@ router.post('/serve', async function (req, res) {
             return res.status(404).json({ success: false, message: "No one is waiting in the queue." });
         }
 
+        // await entry.destroy();
+        // await history.recordEntry(entry.userName, entry.service, "Served", entry.estimatedWaitTime);
+        // await recalculate(service);
+
+        // Record actual elapsed wait (minutes) rather than the join-time estimate
+        const servedWaitMinutes = Math.max(0, Math.round((Date.now() - new Date(entry.createdAt).getTime()) / 60000));
         await entry.destroy();
-        await history.recordEntry(entry.userName, entry.service, "Served", entry.estimatedWaitTime);
+        await history.recordEntry(entry.userName, entry.service, "Served", servedWaitMinutes);
         await recalculate(service);
+
 
         if (notifications && typeof notifications.checkQueue === 'function') {
             const activeQueue = await QueueEntry.findAll();
@@ -129,9 +136,16 @@ router.post('/no-show', async function (req, res) {
             return res.status(404).json({ success: false, message: "No one is waiting in the queue." });
         }
 
+        // await entry.destroy();
+        // await history.recordEntry(entry.userName, entry.service, "Missed", entry.estimatedWaitTime);
+        // await recalculate(service);
+
+        // Replace with actual elapsed wait
+        const missedWaitMinutes = Math.max(0, Math.round((Date.now() - new Date(entry.createdAt).getTime()) / 60000));
         await entry.destroy();
-        await history.recordEntry(entry.userName, entry.service, "Missed", entry.estimatedWaitTime);
+        await history.recordEntry(entry.userName, entry.service, "Missed", missedWaitMinutes);
         await recalculate(service);
+
 
         if (notifications && typeof notifications.checkQueue === 'function') {
             const activeQueue = await QueueEntry.findAll();
@@ -209,10 +223,18 @@ router.delete('/:id', async function (req, res) {
             return res.status(404).json({ success: false, message: "Entry was not found." });
         }
 
+        // const service = entry.service;
+        // await entry.destroy();
+        // await history.recordEntry(entry.userName, entry.service, "Left Queue", entry.estimatedWaitTime);
+        // await recalculate(service);
+
+        // Replace with actual elapsed time
         const service = entry.service;
+        const leftWaitMinutes = Math.max(0, Math.round((Date.now() - new Date(entry.createdAt).getTime()) / 60000));
         await entry.destroy();
-        await history.recordEntry(entry.userName, entry.service, "Left Queue", entry.estimatedWaitTime);
+        await history.recordEntry(entry.userName, entry.service, "Left Queue", leftWaitMinutes);
         await recalculate(service);
+        
 
         if (notifications && typeof notifications.checkQueue === 'function') {
             const activeQueue = await QueueEntry.findAll();

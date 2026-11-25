@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Reports &mdash; Admin</title>
+        <link rel="stylesheet" href="../styles.css">
+    </head>
+    <body>
+        <header>
+            <div class="brand"><img src="../images/logo.svg" alt="QueueSmart" width="32" height="32"><h2>QueueSmart</h2></div>
+            <nav>
+                <ul>
+                    <li><a href="admin_dashboard.html">Admin Dashboard</a></li>
+                    <li><a href="service_management.html">Service Management</a></li>
+                    <li><a href="queue_management.html">Queue Management</a></li>
+                    <li><a href="now_serving_admin.html">Now Serving</a></li>
+                    <li><a href="admin_calendar.html">View Calendar</a></li>
+                    <li><a href="admin_reports.html" class="active">Reports</a></li>
+                    <li><a href="login.html">Logout</a></li>
+                </ul>
+            </nav>
+        </header>
+
+        <h1>Reports</h1>
+        <p>Generate a queue-usage report. Filters are optional.</p>
+
+        <div class="card" id="reports-card">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="report-from">From Date</label>
+                    <input type="date" id="report-from">
+                </div>
+                <div class="form-group">
+                    <label for="report-to">To Date</label>
+                    <input type="date" id="report-to">
+                </div>
+                <div class="form-group">
+                    <label for="report-service">Service</label>
+                    <select id="report-service">
+                        <option value="">All services</option>
+                    </select>
+                </div>
+                <div class="form-group full">
+                    <button class="btn" onclick="generateReport()">Generate Report</button>
+                    <button class="btn-secondary" onclick="exportReport()">Export CSV</button>
+                </div>
+            </div>
+
+            <div id="report-error" style="color:#b91c1c; display:none;"></div>
+        </div>
+
+        <div id="report-results" style="display:none;">
+            <div class="card">
+                <h3>Totals</h3>
+                <table>
+                    <thead>
+                        <tr><th>Served</th><th>Missed</th><th>Left</th><th>Avg Wait</th><th>No-Show Rate</th></tr>
+                    </thead>
+                    <tbody id="report-totals"></tbody>
+                </table>
+            </div>
+
+            <div class="card">
+                <h3>By Service</h3>
+                <table>
+                    <thead>
+                        <tr><th>Service</th><th>Served</th><th>Missed</th><th>Left</th><th>Avg Wait (min)</th></tr>
+                    </thead>
+                    <tbody id="report-by-service"></tbody>
+                </table>
+            </div>
+
+            <div class="card">
+                <h3>By User</h3>
+                <table>
+                    <thead>
+                        <tr><th>User</th><th>Served</th><th>Missed</th><th>Left</th><th>Total Wait (min)</th></tr>
+                    </thead>
+                    <tbody id="report-by-user"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <script>
+            async function loadReportServices() {
+                try {
+                    const res = await fetch('/api/services');
+                    const data = await res.json();
+                    const select = document.getElementById("report-service");
+                    for (let i = 0; i < data.services.length; i++) {
+                        const opt = document.createElement("option");
+                        opt.value = data.services[i].name;
+                        opt.textContent = data.services[i].name;
+                        select.appendChild(opt);
+                    }
+                } catch (err) {}
+            }
+
+            function reportQuery() {
+                const params = new URLSearchParams();
+                const from = document.getElementById("report-from").value;
+                const to = document.getElementById("report-to").value;
+                const service = document.getElementById("report-service").value;
+                if (from) params.set("from", from);
+                if (to) params.set("to", to);
+                if (service) params.set("service", service);
+                const qs = params.toString();
+                return qs ? "?" + qs : "";
+            }
+
+            async function generateReport() {
+                const error = document.getElementById("report-error");
+                error.style.display = "none";
+                try {
+                    const res = await fetch('/api/admin/reports' + reportQuery());
+                    const data = await res.json();
+                    if (!data.success) throw new Error(data.message || "Could not generate report.");
+
+                    document.getElementById("report-results").style.display = "block";
+
+                    document.getElementById("report-totals").innerHTML =
+                        "<tr>" +
+                            "<td>" + data.totals.served + "</td>" +
+                            "<td>" + data.totals.missed + "</td>" +
+                            "<td>" + data.totals.left + "</td>" +
+                            "<td>" + data.totals.avgWait + " min</td>" +
+                            "<td>" + data.totals.noShowRate + "%</td>" +
+                        "</tr>";
+
+                    const svcBody = document.getElementById("report-by-service");
+                    svcBody.innerHTML = "";
+                    if (data.byService.length === 0) {
+                        svcBody.innerHTML = '<tr><td colspan="5"><span class="empty">No records.</span></td></tr>';
+                    } 
+                    else {
+                        for (let i = 0; i < data.byService.length; i++) {
+                            const s = data.byService[i];
+                            const tr = document.createElement("tr");
+                            tr.innerHTML =
+                                "<td>" + s.service + "</td>" +
+                                "<td>" + s.served + "</td>" +
+                                "<td>" + s.missed + "</td>" +
+                                "<td>" + s.left + "</td>" +
+                                "<td>" + s.avgWait + "</td>";
+                            svcBody.appendChild(tr);
+                        }
+                    }
+
+                    const userBody = document.getElementById("report-by-user");
+                    userBody.innerHTML = "";
+                    if (data.users.length === 0) {
+                        userBody.innerHTML = '<tr><td colspan="5"><span class="empty">No records.</span></td></tr>';
+                    } 
+                    else {
+                        for (let i = 0; i < data.users.length; i++) {
+                            const u = data.users[i];
+                            const tr = document.createElement("tr");
+                            tr.innerHTML =
+                                "<td>" + u.userName + "</td>" +
+                                "<td>" + u.served + "</td>" +
+                                "<td>" + u.missed + "</td>" +
+                                "<td>" + u.left + "</td>" +
+                                "<td>" + u.totalWait + "</td>";
+                            userBody.appendChild(tr);
+                        }
+                    }
+                } 
+                catch (err) {
+                    error.textContent = err.message;
+                    error.style.display = "block";
+                }
+            }
+
+            function exportReport() {
+                window.location.href = '/api/admin/reports/export.csv' + reportQuery();
+            }
+
+            loadReportServices();
+        </script>
+    </body>
+</html>

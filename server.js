@@ -15,6 +15,15 @@ const { router: authRouter, resetUsers } = require('./routes/auth');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Reject requests that don't carry the admin role header.
+// The admin frontend sets x-admin-role: admin on every admin API request.
+function requireAdmin(req, res, next) {
+    if (req.headers['x-admin-role'] !== 'admin') {
+        return res.status(403).json({ success: false, message: "Admin access required." });
+    }
+    next();
+}
+
 // Middleware setup
 app.use(cors());
 app.use(bodyParser.json());
@@ -50,6 +59,9 @@ app.use('/api/history', historyRouter);
 
 // Mount Admin Queue API Routes
 app.use('/api/admin/queue', adminQueueRouter);
+
+// Mount Admin Reporting API Routes (admin-only)
+app.use('/api/admin/reports', requireAdmin, require('./routes/adminReports').router);
 
 // Mount Authentication Routes
 app.use('/api/auth', authRouter);
