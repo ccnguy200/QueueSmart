@@ -3,6 +3,48 @@
     <head>
         <title>QueueSmart</title>
         <link rel="stylesheet" href="styles.css">
+        <style>
+            .feature-header {
+                display: grid !important;
+                grid-template-columns: 120px 1fr !important;
+                align-items: start !important;
+                column-gap: 32px !important;
+                margin: 12px var(--gutter) 10px !important;
+            }
+            .feature-header > img {
+                grid-column: 1 !important;
+                grid-row: 1 !important;
+                width: 120px !important;
+                height: 120px !important;
+                justify-self: start !important;
+                align-self: start !important;
+            }
+            .feature-header .feature-right {
+                grid-column: 2 !important;
+                grid-row: 1 !important;
+                min-width: 0 !important;
+                text-align: left !important;
+            }
+            .feature-header .feature-right h1 {
+                margin: 0 0 8px !important;
+            }
+            .feature-header .feature-right .lead {
+                margin: 0 0 20px !important;
+                max-width: none !important;
+            }
+            .feature-header nav ul {
+                gap: 12px !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            .feature-header nav ul li a {
+                display: inline-block !important;
+                padding: 12px 24px !important;
+                font-size: 0.95rem !important;
+                font-weight: 600 !important;
+                border-radius: 999px !important;
+            }
+        </style>
     </head>
     <body>
         <div class="feature-header">

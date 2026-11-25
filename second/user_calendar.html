@@ -10,7 +10,7 @@
         <script src="../bell.js"></script>
     </head>
     <body>
-        <div>
+        <header>
             <div class="brand"><img src="../images/logo.svg" alt="QueueSmart" width="32" height="32"><h2>QueueSmart</h2></div>
             <nav>
                 <ul>
@@ -23,8 +23,9 @@
                     <li><a href="login.html">Logout</a></li>
                 </ul>
             </nav>
+        </header>
+
         <h1>User Calendar</h1>
-        </div>
 
         <!-- Reminder: shown when an appointment is today or tomorrow -->
         <div class="card" id="reminder-card" style="display:none; border: 2px solid darkorange;">
@@ -188,7 +189,7 @@
                             continue;
                         }
                         if (Number(parts[0]) === year && Number(parts[1]) - 1 === month && Number(parts[2]) === curr){
-                            cell.style.backgroundColor = "#ffc078";
+                            cell.style.backgroundColor = "#dbeafe";
                         }   
                     }
                     

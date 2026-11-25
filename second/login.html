@@ -1,16 +1,38 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>Login</title> 
-        <link rel="stylesheet" href="../styles.css">      
+        <title>Login</title>
+        <link rel="stylesheet" href="../styles.css">
+        <style>
+            .login-header {
+                display: flex !important;
+                flex-direction: row !important;
+                align-items: center !important;
+                justify-content: flex-start !important;
+                gap: 16px !important;
+                margin: 0 0 24px !important;
+                width: 100% !important;
+            }
+            .login-header > img {
+                display: block !important;
+                flex: 0 0 auto !important;
+                margin: 0 !important;
+            }
+            .login-header > h1 {
+                margin: 0 !important;
+            }
+        </style>
     </head>
     <body>
         <div class="feature">
-            <img src="../images/logo.svg" alt="QueueSmart" width="56" height="56" style="display:block;margin:0 auto 10px;">
-            <h1>Login</h1>
-            <!-- Pop-up messages that match the site style -->
+            <div class="login-header">
+                <img src="../images/logo.svg" alt="QueueSmart" width="56" height="56">
+                <h1>Login</h1>
+            </div>
+
             <script src="../popup.js"></script>
             <script src="../authentication.js" defer></script>
+
             <form onsubmit="login(); return false;" method="POST">
                 <p>
                     <label for="email">Username:</label>
@@ -20,14 +42,12 @@
                     <label for="secret">Password:</label>
                     <input type="password" id="secret" name="secret" size="10" minlength="8" maxlength="15" required>
                 </p>
-                
                 <p>
                     <button class="btn" type="submit">Submit</button>
                 </p>
             </form>
-            
-            <p><a href="../index.html">Back to Home</a></p>
 
+            <p><a href="../index.html">Back to Home</a></p>
         </div>
     </body>
 </html>
